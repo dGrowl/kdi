@@ -1,6 +1,6 @@
 import pytest
 
-from kdi_template import fibonacci
+from kdi import fibonacci
 
 
 class TestFibonacci:
