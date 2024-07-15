@@ -1,6 +1,6 @@
-# KDI: Template
+# KDI
 
-A modern Python skeleton project that can be cloned to build new modules for the KDI Discord bot system.
+A Discord bot, written in Python using the [hikari](https://github.com/hikari-py/hikari) framework.
 
 ## License
 
