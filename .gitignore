@@ -3,3 +3,6 @@
 /build
 /logs
 /venv
+
+/config/*
+!/config/config.example.toml
