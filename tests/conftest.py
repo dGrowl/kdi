@@ -1,6 +1,7 @@
 from pytest_mock import MockerFixture
 import pytest
 
+from kdi.bot.bot import build_bot
 from kdi.util.config import load_config
 
 
@@ -8,3 +9,4 @@ from kdi.util.config import load_config
 def use_example_config(session_mocker: MockerFixture):
 	session_mocker.patch("kdi.util.config.CONFIG_FILE_NAME", "config.example.toml")
 	load_config()
+	session_mocker.patch("kdi.bot.bot.kdi", build_bot())
