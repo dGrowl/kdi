@@ -1,9 +1,7 @@
-from typing import Any
-
 from pytest_mock import MockerFixture
 import pytest
 
-from kdi.util import Config
+from kdi.util import get_config_value
 
 
 @pytest.fixture(autouse=True)
@@ -19,42 +17,25 @@ def mock_config_file(mocker: MockerFixture):
 	)
 
 
-@pytest.fixture
-def sample_config():
-	return Config("section", {"a", "b"})
-
-
 class TestConfig:
-	def test_loads_keys(
-		self,
-		sample_config: Config,
-		mock_config_file: None,
-	):
-		assert sample_config.get("a") == "first"
-		assert sample_config.get("b") == "second"
+	def test_loads_keys(self, mock_config_file: None):
+		assert get_config_value("section", "a") == "first"
+		assert get_config_value("section", "b") == "second"
 
-	def test_reads_file_once(
-		self,
-		mocker: MockerFixture,
-		sample_config: Config,
-		mock_config_file: None,
-	):
+	def test_reads_file_once(self, mocker: MockerFixture, mock_config_file: None):
 		import kdi.util.config
 
 		spy = mocker.spy(kdi.util.config, "load_config")
 		assert spy.call_count == 0
-		sample_config.get("a")
+		get_config_value("section", "a")
 		assert spy.call_count == 1
-		sample_config.get("b")
+		get_config_value("section", "b")
 		assert spy.call_count == 1
 
-	@pytest.mark.parametrize("config_file_data", [{}, {"section": {"a": "first"}}])
-	def test_file_missing_keys(
-		self,
-		mocker: MockerFixture,
-		sample_config: Config,
-		config_file_data: dict[str, Any],
-	):
-		mocker.patch("kdi.util.config.read_config_file", return_value=config_file_data)
+	def test_missing_table_key(self):
 		with pytest.raises(SystemExit):
-			sample_config.load()
+			get_config_value("section_two", "a")
+
+	def test_missing_key(self):
+		with pytest.raises(SystemExit):
+			get_config_value("section", "c")
