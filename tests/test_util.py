@@ -25,12 +25,12 @@ class TestConfig:
 	def test_reads_file_once(self, mocker: MockerFixture, mock_config_file: None):
 		import kdi.util.config
 
-		spy = mocker.spy(kdi.util.config, "load_config")
-		assert spy.call_count == 0
+		config_loader = mocker.spy(kdi.util.config, "load_config")
+		config_loader.assert_not_called()
 		get_config_value("section", "a")
-		assert spy.call_count == 1
+		config_loader.assert_called_once()
 		get_config_value("section", "b")
-		assert spy.call_count == 1
+		config_loader.assert_called_once()
 
 	def test_missing_table_key(self):
 		with pytest.raises(SystemExit):
