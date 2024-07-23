@@ -7,4 +7,4 @@ lint:
 	ruff check $(PY_DIRS)
 
 test:
-	pytest -rP
+	pytest
