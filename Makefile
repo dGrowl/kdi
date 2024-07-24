@@ -8,3 +8,9 @@ lint:
 
 test:
 	pytest
+
+dev:
+	python -m kdi
+
+prod:
+	python -OO -m kdi
