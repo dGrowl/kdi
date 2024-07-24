@@ -1,2 +1,5 @@
 [bot]
 token = "DISCORD_API_TOKEN"
+
+[user]
+trusted_ids = [123, 456, 789]
