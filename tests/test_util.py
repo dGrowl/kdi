@@ -1,7 +1,7 @@
 from pytest_mock import MockerFixture
 import pytest
 
-from kdi.util import get_config_value
+from kdi.util import Command, get_config_value
 
 
 @pytest.fixture(autouse=True)
@@ -39,3 +39,58 @@ class TestConfig:
 	def test_missing_key(self):
 		with pytest.raises(SystemExit):
 			get_config_value("section", "c")
+
+
+@pytest.fixture
+def module():
+	return "etl"
+
+
+@pytest.fixture
+def action():
+	return "transform"
+
+
+@pytest.fixture
+def arg():
+	return "data.txt"
+
+
+@pytest.fixture
+def args():
+	return ["-O3", "--verbose", "data.txt"]
+
+
+class TestCommand:
+	def test_module(self, module: str):
+		assert Command.from_string(f"/{module}") == Command(module)
+
+	def test_action(self, module: str, action: str):
+		assert Command.from_string(f"/{module} {action}") == Command(module, action)
+
+	def test_one_arg(self, module: str, action: str, arg: str):
+		assert Command.from_string(f"/{module} {action} {arg}") == Command(
+			module, action, [arg]
+		)
+
+	def test_multiple_args(self, module: str, action: str, args: list[str]):
+		assert Command.from_string(f"/{module} {action} {" ".join(args)}") == Command(
+			module, action, args
+		)
+
+	@pytest.mark.parametrize("command", ["", "    ", "/", "hello, kdi"])
+	def test_non_command(self, command: str):
+		assert Command.from_string(command) is None
+
+	def test_extra_spaces(self, module: str, action: str, args: list[str]):
+		assert Command.from_string(
+			f"/{module}    {action}     {" ".join(args)}    "
+		) == Command(module, action, args)
+
+	def test_special_characters(self):
+		module = "he_llo"
+		action = "!)#*(_|}{<>938)"
+		args = ["aH|{}<:L(8", "zdL+_!#-=SJ)", r"$?<\>:}{})(*!#&)"]
+		assert Command.from_string(f"/{module} {action} {" ".join(args)}") == Command(
+			module, action, args
+		)
