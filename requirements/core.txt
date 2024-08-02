@@ -1,1 +1,2 @@
 hikari-2.0.0.dev126
+hikari-lightbulb==2.3.5
