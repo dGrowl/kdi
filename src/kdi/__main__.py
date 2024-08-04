@@ -1,7 +1,7 @@
 from .bot import kdi
-from .relay import RelayPlugin
+
+from .relay import relay_plugin
 
 if __name__ == "__main__":
-	relay = RelayPlugin()
-
+	kdi.add_plugin(relay_plugin)
 	kdi.run()

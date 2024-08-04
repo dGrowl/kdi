@@ -1,4 +1,5 @@
 import hikari
+import lightbulb
 
 from ..util import get_config_value
 
@@ -10,11 +11,12 @@ INTENTS = (
 )
 
 
-def build_bot():
-	return hikari.GatewayBot(
-		token=get_config_value("bot", "token"),
-		intents=INTENTS,
-	)
+class KDI(lightbulb.BotApp):
+	def __init__(self):
+		super().__init__(
+			token=get_config_value("bot", "token"),
+			intents=INTENTS,
+		)
 
 
-kdi = build_bot()
+kdi = KDI()

@@ -1,3 +1,3 @@
-from .bot import kdi
+from .bot import kdi, KDI
 
-__all__ = ["kdi"]
+__all__ = ["kdi", "KDI"]

@@ -1,3 +1,3 @@
-from .relay import RelayPlugin
+from .relay import relay_plugin
 
-__all__ = ["RelayPlugin"]
+__all__ = ["relay_plugin"]
