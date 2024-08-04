@@ -7,10 +7,15 @@ def get_log_path():
 	return p.absolute()
 
 
-logging.basicConfig(
-	filename=get_log_path(),
-	filemode="w",
-	format="%(asctime)s - %(levelname)s: %(message)s",
-	level=logging.DEBUG,
-)
+LOGGING_LEVEL = logging.DEBUG
+
 log = logging.getLogger("kdi")
+log.setLevel(LOGGING_LEVEL)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(LOGGING_LEVEL)
+console_handler.setFormatter(
+	logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
+)
+
+log.addHandler(console_handler)
