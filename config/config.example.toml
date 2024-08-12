@@ -1,5 +1,6 @@
 [bot]
 token = "DISCORD_API_TOKEN"
+color = "#48F8AC"
 
 [user]
 trusted_ids = [123, 456, 789]
