@@ -65,7 +65,7 @@ class TestSendMessage:
 		self, mock_message_creator: MockType, sample_dm_event: MockType
 	):
 		relay = RelayPlugin()
-		relay._user_channel[sample_dm_event.author_id] = SAMPLE_CHANNEL_ID  # type: ignore
+		relay._user_channel[sample_dm_event.author_id] = SAMPLE_CHANNEL_ID
 		await relay.send_message(sample_dm_event)
 		mock_message_creator.assert_called_once_with(
 			SAMPLE_CHANNEL_ID, sample_dm_event.content
@@ -100,7 +100,7 @@ class TestSetChannel:
 		relay = RelayPlugin()
 		await relay.set_channel(sample_set_channel_context)
 		assert (
-			relay._user_channel[sample_set_channel_context.user.id]  # type: ignore
+			relay._user_channel[sample_set_channel_context.user.id]
 			== sample_set_channel_context.options["channel"].id
 		)
 		sample_set_channel_context.respond.assert_called_once_with(
