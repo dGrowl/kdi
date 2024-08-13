@@ -1,23 +1,21 @@
 from pytest_mock import MockerFixture
 import pytest
 
-from kdi.util import get_config_value
-
-
-@pytest.fixture(autouse=True)
-def clear_config_file_data(mocker: MockerFixture):
-	mocker.patch("kdi.util.config.config_file_data", None)
-
-
-@pytest.fixture
-def mock_config_file(mocker: MockerFixture):
-	mocker.patch(
-		"kdi.util.config.read_config_file",
-		return_value={"section": {"a": "first", "b": "second"}},
-	)
+from kdi.util import get_config_value, shuffled
 
 
 class TestConfig:
+	@pytest.fixture(autouse=True)
+	def clear_config_file_data(self, mocker: MockerFixture):
+		mocker.patch("kdi.util.config.config_file_data", None)
+
+	@pytest.fixture
+	def mock_config_file(self, mocker: MockerFixture):
+		mocker.patch(
+			"kdi.util.config.read_config_file",
+			return_value={"section": {"a": "first", "b": "second"}},
+		)
+
 	def test_loads_keys(self, mock_config_file: None):
 		assert get_config_value("section", "a") == "first"
 		assert get_config_value("section", "b") == "second"
@@ -39,3 +37,16 @@ class TestConfig:
 	def test_missing_key(self):
 		with pytest.raises(SystemExit):
 			get_config_value("section", "c")
+
+
+class TestShuffled:
+	def test_copies_object(self):
+		x = [1, 2, 3, 4]
+		y = shuffled(x)
+		assert id(x) != id(y)
+
+	def test_copies_subobjects(self):
+		x = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+		y = shuffled(x)
+		for a, b in zip(x, y):
+			assert id(a) != id(b)
