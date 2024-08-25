@@ -1,12 +1,17 @@
+from typing import Optional
+
+
 class Team:
 	_capacity: int
 	_members: set[str]
 
-	def __init__(self, capacity: int):
+	def __init__(self, capacity: int, members: Optional[set[str]] = None):
 		if capacity <= 0:
-			raise ValueError(capacity, "Team capacity must be positive")
+			raise ValueError(capacity, "Capacity must be positive")
+		if members is not None and len(members) > capacity:
+			raise ValueError(capacity, "Member count must not exceed capacity")
 		self._capacity = capacity
-		self._members = set()
+		self._members = set() if members is None else members.copy()
 
 	def __str__(self):
 		return str(self._members)

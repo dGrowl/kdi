@@ -14,6 +14,10 @@ class TestInit:
 		with pytest.raises(ValueError):
 			Team(c)
 
+	def test_errors_on_excessive_members(self):
+		with pytest.raises(ValueError):
+			Team(3, {"a", "b", "c", "d"})
+
 
 class TestRemainingSpace:
 	def test_calculates_accurately(self, members: set[str]):
