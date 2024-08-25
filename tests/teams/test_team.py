@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 
 from kdi.teams.team import Team
@@ -17,6 +19,25 @@ class TestInit:
 	def test_errors_on_excessive_members(self):
 		with pytest.raises(ValueError):
 			Team(3, {"a", "b", "c", "d"})
+
+
+class TestEquality:
+	@pytest.mark.parametrize(
+		("c", "members"),
+		[
+			(4, None),
+			(3, {"a"}),
+		],
+	)
+	def test_returns_true_on_match(self, c: int, members: Optional[set[str]]):
+		assert Team(c, members) == Team(c, members)
+
+	def test_returns_false_on_differing_capacities(self, members: set[str]):
+		assert Team(3, members) != Team(4, members)
+
+	def test_returns_false_on_differing_members(self, members: set[str]):
+		c = 3
+		assert Team(c, members) != Team(c, members | {"c"})
 
 
 class TestRemainingSpace:

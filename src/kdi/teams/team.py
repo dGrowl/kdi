@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 
 class Team:
@@ -13,11 +13,29 @@ class Team:
 		self._capacity = capacity
 		self._members = set() if members is None else members.copy()
 
+	def __eq__(self, other: object):
+		if isinstance(other, Team):
+			return self.__dict__ == other.__dict__
+		return False
+
+	def __contains__(self, name: str):
+		return name in self._members
+
 	def __str__(self):
 		return str(self._members)
 
 	def __repr__(self):
 		return f"Team(capacity={self._capacity}, members={self._members})"
+
+	def __and__(self, other: Union["Team", set[str]]):
+		if isinstance(other, set):
+			return self._members & other
+		return self._members & other._members
+
+	def __or__(self, other: Union["Team", set[str]]):
+		if isinstance(other, set):
+			return self._members | other
+		return self._members | other._members
 
 	@property
 	def remaining_space(self):
