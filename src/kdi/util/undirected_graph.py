@@ -39,3 +39,55 @@ class UndirectedGraph:
 	def increment_pairs(self, pairs: KeyPairs):
 		for u, v in pairs:
 			self.increment(u, v)
+
+
+WEAK_FORCE = 1_000
+STRONG_FORCE = WEAK_FORCE * 1_000
+
+
+class MagneticGraph(UndirectedGraph):
+	_attractions: DefaultDict[str, set[str]]
+	_repulsions: DefaultDict[str, set[str]]
+
+	def __init__(self):
+		super().__init__()
+		self._attractions = defaultdict(set)
+		self._repulsions = defaultdict(set)
+
+	def __getitem__(self, u: str):
+		return self._weights[u]
+
+	def clear(self):
+		super().clear()
+		self._attractions.clear()
+		self._repulsions.clear()
+
+	def reset_polarity(self, u: str, v: str):
+		if u in self._attractions:
+			self.add(u, v, STRONG_FORCE)
+			self._attractions[u].discard(v)
+			self._attractions[v].discard(u)
+		elif u in self._repulsions:
+			self.add(u, v, -STRONG_FORCE)
+			self._repulsions[u].discard(v)
+			self._repulsions[v].discard(u)
+
+	def attract(self, u: str, v: str):
+		self.reset_polarity(u, v)
+		self.add(u, v, -STRONG_FORCE)
+		self._attractions[u].add(v)
+		self._attractions[v].add(u)
+
+	def attract_pairs(self, pairs: KeyPairs):
+		for u, v in pairs:
+			self.attract(u, v)
+
+	def repel(self, u: str, v: str):
+		self.reset_polarity(u, v)
+		self.add(u, v, STRONG_FORCE)
+		self._repulsions[u].add(v)
+		self._repulsions[v].add(u)
+
+	def repel_pairs(self, pairs: KeyPairs):
+		for u, v in pairs:
+			self.repel(u, v)

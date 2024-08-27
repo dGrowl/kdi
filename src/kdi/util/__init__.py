@@ -1,7 +1,7 @@
 from .config import get_config_value
 from .helpers import flatten_2d, shuffled
 from .logger import log
-from .symmetric_graph import NodeWeights, SymmetricGraph
+from .undirected_graph import NodeWeights, MagneticGraph
 
 __all__ = [
 	"flatten_2d",
@@ -9,5 +9,5 @@ __all__ = [
 	"log",
 	"NodeWeights",
 	"shuffled",
-	"SymmetricGraph",
+	"MagneticGraph",
 ]
