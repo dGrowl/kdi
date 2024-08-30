@@ -141,17 +141,20 @@ class TestCheckPlayersInteraction:
 	async def test_player_available(
 		self, player_interaction: MockType, state_player_adder: MockType
 	):
+		player = {player_interaction.user.username}
+
 		teams = TeamsPlugin()
 		teams._players_message._message = player_interaction.message
 		await teams.check_players_interaction(player_interaction)
+
 		state_player_adder.assert_called_once_with(
 			teams._state,
-			player_interaction.user.username,
+			player,
 		)
 		assert state_player_adder.spy_return
 		player_interaction.create_initial_response.assert_called_once_with(
 			hikari.ResponseType.MESSAGE_UPDATE,
-			embed=teams._players_message.build_embed([SAMPLE_PLAYER_NAME]),
+			embed=teams._players_message.build_embed([player]),
 		)
 
 	@pytest.mark.asyncio
@@ -159,16 +162,14 @@ class TestCheckPlayersInteraction:
 		self, player_interaction: MockType, state_player_remover: MockType
 	):
 		player_interaction.custom_id = PLAYER_UNAVAILABLE_ID
+		player = {player_interaction.user.username}
 
 		teams = TeamsPlugin()
 		teams._players_message._message = player_interaction.message
-		teams._state._players = {SAMPLE_PLAYER_NAME}
+		teams._state.add_player(player)
 		await teams.check_players_interaction(player_interaction)
 
-		state_player_remover.assert_called_once_with(
-			teams._state,
-			player_interaction.user.username,
-		)
+		state_player_remover.assert_called_once_with(teams._state, player)
 		assert state_player_remover.spy_return
 		player_interaction.create_initial_response.assert_called_once_with(
 			hikari.ResponseType.MESSAGE_UPDATE,
@@ -179,14 +180,16 @@ class TestCheckPlayersInteraction:
 	async def test_player_available_duplicate(
 		self, player_interaction: MockType, state_player_adder: MockType
 	):
+		player = {player_interaction.user.username}
+
 		teams = TeamsPlugin()
 		teams._players_message._message = player_interaction.message
-		teams._state._players = {SAMPLE_PLAYER_NAME}
+		teams._state.add_player(player)
 		await teams.check_players_interaction(player_interaction)
 
-		state_player_adder.assert_called_once_with(
+		state_player_adder.assert_called_with(
 			teams._state,
-			player_interaction.user.username,
+			player,
 		)
 		assert not state_player_adder.spy_return
 
@@ -194,16 +197,14 @@ class TestCheckPlayersInteraction:
 	async def test_player_unavailable_nonexistent(
 		self, player_interaction: MockType, state_player_remover: MockType
 	):
+		player = {player_interaction.user.username}
 		player_interaction.custom_id = PLAYER_UNAVAILABLE_ID
 
 		teams = TeamsPlugin()
 		teams._players_message._message = player_interaction.message
 		await teams.check_players_interaction(player_interaction)
 
-		state_player_remover.assert_called_once_with(
-			teams._state,
-			player_interaction.user.username,
-		)
+		state_player_remover.assert_called_once_with(teams._state, player)
 		assert not state_player_remover.spy_return
 
 

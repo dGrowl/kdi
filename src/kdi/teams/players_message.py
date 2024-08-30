@@ -4,7 +4,7 @@ import hikari
 import lightbulb
 
 from ..bot import kdi
-from ..util import get_config_value
+from ..util import get_config_value, KeySet
 
 
 PLAYER_AVAILABLE_ID = "PLAYER_AVAILABLE"
@@ -32,6 +32,10 @@ ACTION_ROW.add_interactive_button(
 )
 
 
+def format_players(players: Collection[KeySet]):
+	return sorted([" / ".join(sorted(p)) for p in players])
+
+
 class PlayersMessage:
 	_color: str
 	_message: Optional[hikari.Message]
@@ -43,16 +47,15 @@ class PlayersMessage:
 	def matches(self, message: hikari.Message) -> bool:
 		return self._message is not None and self._message.id == message.id
 
-	def build_embed(self, players: Collection[str] = []):
+	def build_embed(self, players: Collection[KeySet] = []):
+		names = format_players(players)
 		return hikari.Embed(
 			title=PLAYERS_EMBED_TITLE,
 			color=self._color,
 			description=PLAYERS_EMBED_DESCRIPTION,
 		).add_field(
 			f"Active ({len(players)})",
-			"\n".join(sorted(players))
-			if len(players) > 0
-			else PLAYERS_EMBED_NO_PLAYERS_LIST,
+			"\n".join(names) if players else PLAYERS_EMBED_NO_PLAYERS_LIST,
 		)
 
 	async def create(self, ctx: lightbulb.SlashContext):
