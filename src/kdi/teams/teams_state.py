@@ -1,8 +1,19 @@
+from math import ceil
 from typing import Optional
 
 from ..util import KeySet
 
 Player = frozenset[str]
+
+
+def calc_team_sizes(n_players: int, max_size: int) -> list[int]:
+	if max_size <= 0 or n_players <= 0:
+		return []
+	n_groups = ceil(n_players / max_size)
+	base_size = n_players // n_groups
+	remainder = n_players % n_groups
+	group_sizes = [base_size + 1] * remainder + [base_size] * (n_groups - remainder)
+	return group_sizes
 
 
 class TeamsState:
