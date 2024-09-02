@@ -1,7 +1,8 @@
 from math import ceil
 from typing import Optional
 
-from ..util import KeySet
+from ..util import shuffled, KeySet
+from .team import Team
 
 Player = frozenset[str]
 
@@ -46,3 +47,18 @@ class TeamsState:
 			self._players.discard(player)
 			return True
 		return False
+
+	def build_priority(self):
+		return shuffled(self._players)
+
+	def generate(self, max_team_size: int):
+		n_players = sum(len(p) for p in self._players)
+		team_sizes = calc_team_sizes(n_players, max_team_size)
+		teams = [Team(n) for n in team_sizes]
+		players = self.build_priority()
+		for p in players:
+			for t in teams:
+				if t.remaining_space >= len(p):
+					t.add_members(p)
+					break
+		return teams
