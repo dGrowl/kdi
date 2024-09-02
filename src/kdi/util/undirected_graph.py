@@ -15,15 +15,17 @@ class UndirectedGraph:
 		self._weights = defaultdict(NodeWeights)
 
 	def __str__(self):
-		seen: set[Key] = set()
+		seen: set[KeyPair] = set()
 		lines: list[str] = []
 		for u, edges in self._weights.items():
 			for v, w in edges.items():
-				if v in seen:
+				if u > v:
+					u, v = v, u
+				if (u, v) in seen:
 					continue
 				lines.append(f"\t{u}-{v} = {w}")
-				seen |= {u, v}
-		return "{\n" + "\n".join(lines) + "\n}"
+				seen.add((u, v))
+		return "{\n" + "\n".join(sorted(lines)) + "\n}"
 
 	def __getitem__(self, key: Key):
 		return self._weights[key]
