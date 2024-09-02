@@ -65,11 +65,11 @@ class MagneticGraph(UndirectedGraph):
 		self._repulsions.clear()
 
 	def reset_polarity(self, u: Key, v: Key):
-		if u in self._attractions:
+		if u in self._attractions[v]:
 			self.add(u, v, STRONG_FORCE)
 			self._attractions[u].discard(v)
 			self._attractions[v].discard(u)
-		elif u in self._repulsions:
+		elif u in self._repulsions[v]:
 			self.add(u, v, -STRONG_FORCE)
 			self._repulsions[u].discard(v)
 			self._repulsions[v].discard(u)

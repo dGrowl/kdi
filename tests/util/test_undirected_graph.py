@@ -14,6 +14,11 @@ def b():
 	return "b"
 
 
+@pytest.fixture
+def c():
+	return "c"
+
+
 class TestAdd:
 	def test_synchronizes_weights(self, a: str, b: str):
 		x = 4
@@ -48,6 +53,13 @@ class TestResetPolarity:
 		graph.attract(a, b)
 		graph.reset_polarity(b, a)
 		assert graph[a][b] == graph[b][a] == 0
+
+	def test_detects_existing_polarity(self, a: str, b: str, c: str):
+		graph = MagneticGraph()
+		graph.attract(a, b)
+		graph.repel(a, c)
+		graph.reset_polarity(a, c)
+		assert graph[a][c] == graph[c][a] == 0
 
 
 class TestAttract:
