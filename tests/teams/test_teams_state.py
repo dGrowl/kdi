@@ -1,6 +1,14 @@
+from pytest_mock import MockerFixture
 import pytest
 
-from kdi.teams.teams_state import calc_team_sizes
+from kdi.teams.team import Team
+from kdi.teams.teams_state import (
+	calc_team_sizes,
+	get_optimal_teammate,
+	Player,
+	TeamsState,
+)
+from kdi.util import KeySet, NodeWeights
 
 
 class TestCalcSizes:
@@ -58,6 +66,40 @@ class TestRemovePlayer:
 		assert not state.remove_player({"a"})
 
 
+class TestRecordHistoricForce:
+	def test_increments_all_pairs(self):
+		team = Team(3, set("abc"))
+		a, b, c = team
+		state = TeamsState()
+		state.record_historic_force(team)
+
+		assert state._forces[a][b] == state._forces[a][c] == state._forces[b][c] == 1
+
+
+class TestGetOptimalTeammate:
+	def test_returns_player_with_least_force(self, players_6: list[KeySet]):
+		state = TeamsState(players=players_6)
+		pool = state._players.copy() - {Player(name) for name in "ab"}
+		t = Team(3, set("ab"))
+		out_forces = NodeWeights({"f": -1})
+
+		assert get_optimal_teammate(pool, t, out_forces) == {"f"}
+
+	def test_balances_forces(self):
+		pool = {Player(name) for name in ["bc", "d"]}
+		t = Team(3, set("a"))
+		out_forces = NodeWeights({"b": -20, "c": 10, "d": -1})
+
+		assert get_optimal_teammate(pool, t, out_forces) == {"b", "c"}
+
+	def test_ignores_oversized_players(self):
+		pool = {Player(name) for name in ["cd", "e"]}
+		t = Team(3, set("ab"))
+		out_forces = NodeWeights({"c": -1, "e": 1})
+
+		assert get_optimal_teammate(pool, t, out_forces) == {"e"}
+
+
 class TestGenerate:
 	def test_sizes_teams_correctly(self, players_6: list[KeySet]):
 		state = TeamsState(players=players_6)
@@ -75,9 +117,39 @@ class TestGenerate:
 		)
 
 	def test_places_multiplayer_together(self):
-		multi = frozenset({"e", "f"})
-		players = [{c} for c in "abcd"] + [multi]
+		multi = Player("ef")
+		players = [Player(c) for c in "abcd"] + [multi]
 		state = TeamsState(players=players)
 		teams = state.generate(3)
 
 		assert sorted([t & multi for t in teams]) == [set(), multi]
+
+	def test_records_historic_forces(
+		self, mocker: MockerFixture, players_3: list[KeySet]
+	):
+		recorder = mocker.spy(TeamsState, "record_historic_force")
+
+		state = TeamsState(players=players_3)
+		teams = state.generate(3)
+
+		recorder.assert_called_once_with(state, teams[0])
+
+	def test_follows_historic_forces(
+		self, mocker: MockerFixture, players_6: list[KeySet]
+	):
+		mocker.patch(
+			"kdi.teams.teams_state.TeamsState.build_priority",
+			mocker.MagicMock(return_value=players_6),
+		)
+
+		state = TeamsState(players=players_6)
+		state._forces.load(
+			[
+				("a", "b", 3),
+				("a", "c", 3),
+				("a", "d", 2),
+			]
+		)
+		teams = state.generate(3)
+
+		assert teams[0].members == set("aef")

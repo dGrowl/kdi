@@ -30,6 +30,11 @@ class UndirectedGraph:
 	def __getitem__(self, key: Key):
 		return self._weights[key]
 
+	def load(self, weights: list[tuple[Key, Key, int]]):
+		self.clear()
+		for u, v, w in weights:
+			self._weights[u][v] = self._weights[v][u] = w
+
 	def clear(self):
 		self._weights.clear()
 
