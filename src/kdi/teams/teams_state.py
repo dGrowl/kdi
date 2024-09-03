@@ -40,20 +40,27 @@ def get_optimal_teammate(pool: set[Player], team: Team, out_forces: NodeWeights)
 
 
 class TeamsState:
+	_cores: set[Player]
 	_forces: MagneticGraph
 	_players: set[Player]
 
 	def __init__(
 		self,
+		cores: Optional[Sequence[KeySet]] = None,
 		players: Optional[Sequence[KeySet]] = None,
 	):
+		self._cores = set()
 		self._forces = MagneticGraph()
 		self._players = set()
+		if cores is not None:
+			for c in cores:
+				self.add_player(c, True)
 		if players is not None:
 			for p in players:
 				self.add_player(p)
 
 	def reset(self):
+		self._cores.clear()
 		self._forces.clear()
 		self._players.clear()
 
@@ -61,16 +68,21 @@ class TeamsState:
 	def players(self):
 		return self._players
 
-	def add_player(self, names: KeySet):
+	def add_player(self, names: KeySet, is_core: bool = False):
 		for p in self._players:
 			if names & p:
 				return False
 		new_player = Player(names)
+		if is_core:
+			for c in self._cores:
+				self._forces.repel_pairs(product(new_player, c))
+			self._cores.add(new_player)
 		self._players.add(new_player)
 		return True
 
 	def remove_player(self, names: KeySet):
 		player = Player(names)
+		self._cores.discard(player)
 		if player in self._players:
 			self._players.discard(player)
 			return True

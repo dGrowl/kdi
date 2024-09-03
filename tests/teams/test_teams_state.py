@@ -9,6 +9,7 @@ from kdi.teams.teams_state import (
 	TeamsState,
 )
 from kdi.util import KeySet, NodeWeights
+from kdi.util.undirected_graph import STRONG_FORCE
 
 
 class TestCalcSizes:
@@ -54,6 +55,16 @@ class TestAddPlayer:
 	def test_returns_false_on_duplicate(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
 		assert not state.add_player(players_3[0])
+
+	def test_repels_cores_from_each_other(self, cores_2_1: list[KeySet]):
+		state = TeamsState()
+		state.add_player(cores_2_1[0], True)
+
+		assert not state._forces["x"] and not state._forces["y"]
+
+		state.add_player(cores_2_1[1], True)
+
+		assert state._forces["x"]["z"] == state._forces["y"]["z"] == STRONG_FORCE
 
 
 class TestRemovePlayer:
@@ -123,6 +134,16 @@ class TestGenerate:
 		teams = state.generate(3)
 
 		assert sorted([t & multi for t in teams]) == [set(), multi]
+
+	def test_splits_cores(self, players_3: list[KeySet]):
+		state = TeamsState([{"x"}, {"y"}], players_3)
+		teams = state.generate(3)
+		first_core = teams[0] & {"x", "y"}
+		second_core = teams[1] & {"x", "y"}
+
+		assert (first_core == {"x"} and second_core == {"y"}) or (
+			first_core == {"y"} and second_core == {"x"}
+		)
 
 	def test_records_historic_forces(
 		self, mocker: MockerFixture, players_3: list[KeySet]
