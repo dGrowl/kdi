@@ -35,6 +35,36 @@ class TestAdd:
 		assert graph._weights[a][b] == graph._weights[a][b] == x + y
 
 
+class TestCalcMagneticForceCount:
+	def test_returns_correct_count(self):
+		graph = MagneticGraph()
+		graph.attract("a", "b")
+		assert graph.calc_magnetic_force_count({"a"}) == 1
+
+	def test_includes_all_keys(self):
+		graph = MagneticGraph()
+		graph.attract("a", "d")
+		graph.repel("b", "c")
+		assert graph.calc_magnetic_force_count({"a", "b"}) == 2
+
+	def test_includes_all_strong_forces(self):
+		graph = MagneticGraph()
+		graph.attract("a", "b")
+		graph.repel("a", "c")
+		assert graph.calc_magnetic_force_count({"a"}) == 2
+
+	def test_ignores_interkey_forces(self):
+		graph = MagneticGraph()
+		graph.attract("a", "b")
+		assert graph.calc_magnetic_force_count({"a", "b"}) == 0
+
+	def test_ignores_irrelevant_keys(self):
+		graph = MagneticGraph()
+		graph.attract("a", "b")
+		graph.attract("b", "c")
+		assert graph.calc_magnetic_force_count({"a"}) == 1
+
+
 class TestResetPolarity:
 	def test_resets_attraction(self, a: str, b: str):
 		graph = MagneticGraph()

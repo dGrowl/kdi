@@ -3,7 +3,7 @@ from math import ceil, inf
 from random import shuffle
 from typing import Optional, Sequence
 
-from ..util import shuffled, KeySet, MagneticGraph, NodeWeights
+from ..util import KeySet, MagneticGraph, NodeWeights
 from .team import Team
 
 Player = frozenset[str]
@@ -92,7 +92,11 @@ class TeamsState:
 		self._forces.increment_pairs(combinations(t, 2))
 
 	def build_priority(self):
-		return shuffled(self._players)
+		return sorted(
+			self._players,
+			key=lambda p: (len(p), self._forces.calc_magnetic_force_count(p), random()),
+			reverse=True,
+		)
 
 	def fill_team(self, pool: set[Player], team: Team):
 		out_forces = NodeWeights()

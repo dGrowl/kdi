@@ -71,6 +71,14 @@ class MagneticGraph(UndirectedGraph):
 		self._attractions.clear()
 		self._repulsions.clear()
 
+	def calc_magnetic_force_count(self, keys: KeySet) -> int:
+		attractions: set[Key] = set()
+		repulsions: set[Key] = set()
+		for w in keys:
+			attractions |= self._attractions[w]
+			repulsions |= self._repulsions[w]
+		return len(attractions - keys) + len(repulsions - keys)
+
 	def reset_polarity(self, u: Key, v: Key):
 		if u in self._attractions[v]:
 			self.add(u, v, STRONG_FORCE)

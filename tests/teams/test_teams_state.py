@@ -87,6 +87,33 @@ class TestRecordHistoricForce:
 		assert state._forces[a][b] == state._forces[a][c] == state._forces[b][c] == 1
 
 
+@pytest.fixture
+def sample_state(cores_2_1: list[KeySet], players_3: list[KeySet]):
+	return TeamsState(cores_2_1, players_3)
+
+
+def sort_keysets(keysets: Sequence[KeySet]):
+	return sorted(keysets, key=lambda names: sorted(list(names)))
+
+
+class TestBuildPriority:
+	def test_orders_all_players(
+		self, sample_state: TeamsState, cores_2_1: list[KeySet], players_3: list[KeySet]
+	):
+		order = sample_state.build_priority()
+		assert sort_keysets(order) == sort_keysets(cores_2_1 + players_3)
+
+	def test_prioritizes_size(self, sample_state: TeamsState, cores_2_1: list[KeySet]):
+		order = sample_state.build_priority()
+		assert order[0] == cores_2_1[0]
+
+	def test_prioritizes_strong_force_count(
+		self, sample_state: TeamsState, cores_2_1: list[KeySet]
+	):
+		order = sample_state.build_priority()
+		assert order[1] == cores_2_1[1]
+
+
 class TestGetOptimalTeammate:
 	def test_returns_player_with_least_force(self, players_6: list[KeySet]):
 		state = TeamsState(players=players_6)
