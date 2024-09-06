@@ -49,6 +49,7 @@ class CoresMessage:
 				embed.add_field(
 					":rosette: " + self._assigned_names[frozenset(c)],
 					"\n".join(name for name in c),
+					inline=True,
 				)
 		else:
 			embed.add_field("Active (0)", "But you can still play!")
