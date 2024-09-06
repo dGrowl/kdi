@@ -9,12 +9,17 @@ from .players_message import (
 	PLAYER_AVAILABLE_ID,
 	PLAYER_UNAVAILABLE_ID,
 )
-from .teams_state import TeamsState
+from .teams_state import KeySet, TeamsState
 
 UNTRUSTED_USER_RESPONSE = ":no_entry: Only trusted users can make teams. Sorry!"
 
+SELF_DESTRUCT_FOOTER = "This message will self-destruct momentarily."
+
+SELF_DESTRUCT_TIME_SECS = 6.0
+
 
 class TeamsPlugin(lightbulb.Plugin):
+	_color: str
 	_cores_message: CoresMessage
 	_players_message: PlayersMessage
 	_state: TeamsState
@@ -22,6 +27,7 @@ class TeamsPlugin(lightbulb.Plugin):
 
 	def __init__(self):
 		super().__init__("teams")
+		self._color = get_config_value("bot", "color")
 		self._cores_message = CoresMessage()
 		self._players_message = PlayersMessage()
 		self._state = TeamsState()
@@ -36,8 +42,48 @@ class TeamsPlugin(lightbulb.Plugin):
 		await self._cores_message.create(ctx, self._state.cores)
 		await self._players_message.create(ctx)
 
+	def build_add_core_success_embed(self, new_names: KeySet):
+		embed = hikari.Embed(
+			color=self._color,
+			description="Added new core: " + " / ".join(new_names),
+			title=":white_check_mark: Add Core: Success",
+		)
+		embed.set_footer(SELF_DESTRUCT_FOOTER)
+		return embed
+
+	def build_add_core_error_embed(self, new_names: KeySet):
+		description = (
+			"Couldn't add the core **"
+			+ " / ".join(new_names)
+			+ "** because some of those people are already in cores."
+		)
+		embed = hikari.Embed(
+			color=self._color,
+			description=description,
+			title=":stop_sign: Add Core: Failure",
+		)
+		embed.set_footer(SELF_DESTRUCT_FOOTER)
+		return embed
+
 	def is_trusted_user(self, user_id: hikari.Snowflakeish):
 		return user_id in self._trusted_user_ids
+
+	async def add_core(self, ctx: lightbulb.SlashContext):
+		names = {
+			v.username
+			for _, v in ctx.options.items()
+			if isinstance(v, hikari.InteractionMember)
+		}
+		embed = self.build_add_core_success_embed(names)
+		if self._state.add_player(names, True):
+			await self._cores_message.update(self._state.cores)
+		else:
+			embed = self.build_add_core_error_embed(names)
+		await ctx.respond(
+			hikari.ResponseType.MESSAGE_CREATE,
+			delete_after=SELF_DESTRUCT_TIME_SECS,
+			embed=embed,
+		)
 
 	async def check_players_interaction(self, interaction: hikari.ComponentInteraction):
 		if not self._players_message.matches(interaction.message):
@@ -96,3 +142,38 @@ async def teams_group(_):
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def start_command(ctx: lightbulb.SlashContext):
 	await teams_plugin.start(ctx)
+
+
+@teams_group.child
+@lightbulb.option(
+	"player-4",
+	description="The fourth player who will be in the core.",
+	default=None,
+	type=hikari.User,
+)
+@lightbulb.option(
+	"player-3",
+	description="The third player who will be in the core.",
+	default=None,
+	type=hikari.User,
+)
+@lightbulb.option(
+	"player-2",
+	description="The second player who will be in the core.",
+	default=None,
+	type=hikari.User,
+)
+@lightbulb.option(
+	"player-1",
+	description="The first player who will be in the core.",
+	required=True,
+	type=hikari.User,
+)
+@lightbulb.command(
+	"add-core",
+	description="Adds a core to the teams system.",
+	inherit_checks=True,
+)
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def add_core_command(ctx: lightbulb.SlashContext):
+	await teams_plugin.add_core(ctx)
