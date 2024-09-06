@@ -36,6 +36,7 @@ class TestPluginStart:
 		ctx.respond = mocker.AsyncMock()
 		ctx.user.id = 123
 		ctx.user.is_bot = False
+		ctx.user.username = SAMPLE_PLAYER_NAME
 		return ctx
 
 	@pytest.fixture
@@ -137,12 +138,27 @@ class TestCheckPlayersInteraction:
 	def state_player_remover(self, mocker: MockerFixture):
 		return mocker.spy(TeamsState, "remove_player")
 
+	@pytest.fixture
+	def cm_updater(self, mocker: MockerFixture):
+		return mocker.patch(
+			"kdi.teams.cores_message.CoresMessage.update", mocker.AsyncMock()
+		)
+
+	@pytest.fixture
+	def pm_updater(self, mocker: MockerFixture):
+		return mocker.patch(
+			"kdi.teams.players_message.PlayersMessage.update", mocker.AsyncMock()
+		)
+
 	@pytest.mark.asyncio
 	async def test_player_available(
-		self, player_interaction: MockType, state_player_adder: MockType
+		self,
+		player_interaction: MockType,
+		state_player_adder: MockType,
+		cm_updater: MockType,
+		pm_updater: MockType,
 	):
 		player = {player_interaction.user.username}
-
 		teams = TeamsPlugin()
 		teams._players_message._message = player_interaction.message
 		await teams.check_players_interaction(player_interaction)
@@ -153,17 +169,21 @@ class TestCheckPlayersInteraction:
 		)
 		assert state_player_adder.spy_return
 		player_interaction.create_initial_response.assert_called_once_with(
-			hikari.ResponseType.MESSAGE_UPDATE,
-			embed=teams._players_message.build_embed([player]),
+			hikari.ResponseType.DEFERRED_MESSAGE_UPDATE
 		)
+		cm_updater.assert_called_once_with(teams._state._cores)
+		pm_updater.assert_called_once_with(teams._state._players)
 
 	@pytest.mark.asyncio
 	async def test_player_unavailable(
-		self, player_interaction: MockType, state_player_remover: MockType
+		self,
+		player_interaction: MockType,
+		state_player_remover: MockType,
+		cm_updater: MockType,
+		pm_updater: MockType,
 	):
 		player_interaction.custom_id = PLAYER_UNAVAILABLE_ID
 		player = {player_interaction.user.username}
-
 		teams = TeamsPlugin()
 		teams._players_message._message = player_interaction.message
 		teams._state.add_player(player)
@@ -172,9 +192,10 @@ class TestCheckPlayersInteraction:
 		state_player_remover.assert_called_once_with(teams._state, player)
 		assert state_player_remover.spy_return
 		player_interaction.create_initial_response.assert_called_once_with(
-			hikari.ResponseType.MESSAGE_UPDATE,
-			embed=teams._players_message.build_embed([]),
+			hikari.ResponseType.DEFERRED_MESSAGE_UPDATE
 		)
+		cm_updater.assert_called_once_with(teams._state._cores)
+		pm_updater.assert_called_once_with(teams._state._players)
 
 	@pytest.mark.asyncio
 	async def test_player_available_duplicate(

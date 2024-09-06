@@ -4,3 +4,16 @@ color = "#48F8AC"
 
 [user]
 trusted_ids = [123, 456, 789]
+
+[teams]
+core_name_components = [
+	["Core of"],
+	[
+		"Air",
+		"Chaos",
+		"Earth",
+		"Fire",
+		"Life",
+		"Water",
+	]
+]

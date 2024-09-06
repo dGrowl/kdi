@@ -62,6 +62,11 @@ class PlayersMessage:
 		response = await ctx.respond(embed=self.build_embed(), component=ACTION_ROW)
 		self._message = await response.message()
 
+	async def update(self, players: Collection[KeySet]):
+		if self._message is None:
+			return
+		await self._message.edit(embed=self.build_embed(players))
+
 	async def check_delete(self, event: hikari.GuildMessageDeleteEvent):
 		if self._message and self._message.id == event.message_id:
 			self._message = None
