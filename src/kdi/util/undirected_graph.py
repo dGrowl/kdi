@@ -79,6 +79,12 @@ class MagneticGraph(UndirectedGraph):
 			repulsions |= self._repulsions[w]
 		return len(attractions - keys) + len(repulsions - keys)
 
+	def calc_external_force(self, u: Key, external_keys: KeySet):
+		return WEAK_FORCE * (
+			len(self._attractions[u] & external_keys)
+			- len(self._repulsions[u] & external_keys)
+		)
+
 	def reset_polarity(self, u: Key, v: Key):
 		if u in self._attractions[v]:
 			self.add(u, v, STRONG_FORCE)
