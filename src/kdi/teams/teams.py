@@ -18,6 +18,14 @@ SELF_DESTRUCT_FOOTER = "This message will self-destruct momentarily."
 SELF_DESTRUCT_TIME_SECS = 6.0
 
 
+def get_usernames_from_options(options: lightbulb.OptionsProxy):
+	return {
+		v.username
+		for _, v in options.items()
+		if isinstance(v, hikari.InteractionMember)
+	}
+
+
 class TeamsPlugin(lightbulb.Plugin):
 	_color: str
 	_cores_message: CoresMessage
@@ -42,25 +50,38 @@ class TeamsPlugin(lightbulb.Plugin):
 		await self._cores_message.create(ctx, self._state.cores)
 		await self._players_message.create(ctx)
 
-	def build_add_core_success_embed(self, new_names: KeySet):
+	def build_add_core_success_embed(self, core_names: KeySet):
 		embed = hikari.Embed(
 			color=self._color,
-			description="Added new core: " + " / ".join(new_names),
+			description=f"Added new core: **{" / ".join(core_names)}**",
 			title=":white_check_mark: Add Core: Success",
 		)
 		embed.set_footer(SELF_DESTRUCT_FOOTER)
 		return embed
 
-	def build_add_core_error_embed(self, new_names: KeySet):
-		description = (
-			"Couldn't add the core **"
-			+ " / ".join(new_names)
-			+ "** because some of those people are already in cores."
-		)
+	def build_add_core_error_embed(self, core_names: KeySet):
 		embed = hikari.Embed(
 			color=self._color,
-			description=description,
+			description=f"**{" / ".join(core_names)}** overlaps with existing cores.",
 			title=":stop_sign: Add Core: Failure",
+		)
+		embed.set_footer(SELF_DESTRUCT_FOOTER)
+		return embed
+
+	def build_remove_core_success_embed(self, core_names: KeySet):
+		embed = hikari.Embed(
+			color=self._color,
+			description=f"**{" / ".join(core_names)}** is no longer a core.",
+			title=":white_check_mark: Remove Core: Success",
+		)
+		embed.set_footer(SELF_DESTRUCT_FOOTER)
+		return embed
+
+	def build_remove_core_error_embed(self, core_names: KeySet):
+		embed = hikari.Embed(
+			color=self._color,
+			description=f"**{" / ".join(core_names)}** is not currently a core.",
+			title=":stop_sign: Remove Core: Failure",
 		)
 		embed.set_footer(SELF_DESTRUCT_FOOTER)
 		return embed
@@ -69,16 +90,25 @@ class TeamsPlugin(lightbulb.Plugin):
 		return user_id in self._trusted_user_ids
 
 	async def add_core(self, ctx: lightbulb.SlashContext):
-		names = {
-			v.username
-			for _, v in ctx.options.items()
-			if isinstance(v, hikari.InteractionMember)
-		}
+		names = get_usernames_from_options(ctx.options)
 		embed = self.build_add_core_success_embed(names)
 		if self._state.add_player(names, True):
 			await self._cores_message.update(self._state.cores)
 		else:
 			embed = self.build_add_core_error_embed(names)
+		await ctx.respond(
+			hikari.ResponseType.MESSAGE_CREATE,
+			delete_after=SELF_DESTRUCT_TIME_SECS,
+			embed=embed,
+		)
+
+	async def remove_core(self, ctx: lightbulb.SlashContext):
+		names = get_usernames_from_options(ctx.options)
+		embed = self.build_remove_core_success_embed(names)
+		if self._state.remove_player(names):
+			await self._cores_message.update(self._state.cores)
+		else:
+			embed = self.build_remove_core_error_embed(names)
 		await ctx.respond(
 			hikari.ResponseType.MESSAGE_CREATE,
 			delete_after=SELF_DESTRUCT_TIME_SECS,
@@ -144,31 +174,42 @@ async def start_command(ctx: lightbulb.SlashContext):
 	await teams_plugin.start(ctx)
 
 
+PLAYER_OPTIONS = [
+	lightbulb.option(
+		"player-4",
+		description="The fourth player who will be in the core.",
+		default=None,
+		type=hikari.User,
+	),
+	lightbulb.option(
+		"player-3",
+		description="The third player who will be in the core.",
+		default=None,
+		type=hikari.User,
+	),
+	lightbulb.option(
+		"player-2",
+		description="The second player who will be in the core.",
+		default=None,
+		type=hikari.User,
+	),
+	lightbulb.option(
+		"player-1",
+		description="The first player who will be in the core.",
+		required=True,
+		type=hikari.User,
+	),
+]
+
+
+def player_options(command: lightbulb.CommandLike):
+	for o in PLAYER_OPTIONS:
+		command = o(command)
+	return command
+
+
 @teams_group.child
-@lightbulb.option(
-	"player-4",
-	description="The fourth player who will be in the core.",
-	default=None,
-	type=hikari.User,
-)
-@lightbulb.option(
-	"player-3",
-	description="The third player who will be in the core.",
-	default=None,
-	type=hikari.User,
-)
-@lightbulb.option(
-	"player-2",
-	description="The second player who will be in the core.",
-	default=None,
-	type=hikari.User,
-)
-@lightbulb.option(
-	"player-1",
-	description="The first player who will be in the core.",
-	required=True,
-	type=hikari.User,
-)
+@player_options
 @lightbulb.command(
 	"add-core",
 	description="Adds a core to the teams system.",
@@ -177,3 +218,15 @@ async def start_command(ctx: lightbulb.SlashContext):
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def add_core_command(ctx: lightbulb.SlashContext):
 	await teams_plugin.add_core(ctx)
+
+
+@teams_group.child
+@player_options
+@lightbulb.command(
+	"remove-core",
+	description="Removes a core from the teams system.",
+	inherit_checks=True,
+)
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def remove_core_command(ctx: lightbulb.SlashContext):
+	await teams_plugin.remove_core(ctx)
