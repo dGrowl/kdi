@@ -6,10 +6,12 @@ import pytest
 
 from kdi.bot import kdi
 from kdi.teams.teams import (
+	is_trusted_user,
 	PLAYER_AVAILABLE_ID,
 	PLAYER_UNAVAILABLE_ID,
+	start_command,
+	teams_group,
 	TeamsPlugin,
-	UNTRUSTED_USER_RESPONSE,
 )
 from kdi.teams.teams_state import TeamsState
 
@@ -68,29 +70,6 @@ class TestPluginStart:
 		await teams.start(start_context)
 
 		pm_creator.assert_called_once_with(start_context)
-
-	@pytest.mark.asyncio
-	async def test_rejects_bot(self, state_resetter: MockType, start_context: MockType):
-		start_context.user.is_bot = True
-
-		teams = TeamsPlugin()
-		await teams.start(start_context)
-
-		state_resetter.assert_not_called()
-
-	@pytest.mark.asyncio
-	async def test_rejects_untrusted_user(
-		self, state_resetter: MockType, start_context: MockType
-	):
-		start_context.user.id = 321
-
-		teams = TeamsPlugin()
-		await teams.start(start_context)
-
-		start_context.respond.assert_called_once_with(
-			UNTRUSTED_USER_RESPONSE, flags=hikari.MessageFlag.EPHEMERAL
-		)
-		state_resetter.assert_not_called()
 
 
 class TestPluginOnGMDelete:
@@ -244,3 +223,16 @@ class TestPluginOnInteraction:
 		mock_check_player_interaction.assert_called_once_with(
 			player_interaction_event.interaction
 		)
+
+
+class TestCommandGroup:
+	def test_checks_if_human(self):
+		assert lightbulb.human_only in teams_group.checks
+
+	def test_checks_if_trusted_user(self):
+		assert is_trusted_user in teams_group.checks
+
+
+class TestStartCommand:
+	def test_inherits_checks(self):
+		assert start_command.inherit_checks

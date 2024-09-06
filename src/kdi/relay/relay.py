@@ -22,6 +22,9 @@ class RelayPlugin(lightbulb.Plugin):
 
 		kdi.subscribe(hikari.DMMessageCreateEvent, self.on_dm)
 
+	def is_trusted_user(self, user_id: hikari.Snowflakeish):
+		return user_id in self._trusted_user_ids
+
 	async def send_message(self, event: hikari.DMMessageCreateEvent):
 		if not event.content or event.content.startswith("/"):
 			return
@@ -35,7 +38,7 @@ class RelayPlugin(lightbulb.Plugin):
 	async def on_dm(self, event: hikari.DMMessageCreateEvent):
 		if not event.is_human:
 			return
-		if event.author_id not in self._trusted_user_ids:
+		if not self.is_trusted_user(event.author_id):
 			await event.message.respond(
 				UNTRUSTED_USER_RESPONSE, flags=hikari.MessageFlag.EPHEMERAL
 			)
@@ -53,20 +56,31 @@ class RelayPlugin(lightbulb.Plugin):
 relay_plugin = RelayPlugin()
 
 
+@lightbulb.Check
+async def is_trusted_user(ctx: lightbulb.Context):
+	success = relay_plugin.is_trusted_user(ctx.user.id)
+	if not success:
+		await ctx.respond(UNTRUSTED_USER_RESPONSE, flags=hikari.MessageFlag.EPHEMERAL)
+	return success
+
+
 @relay_plugin.command
-@lightbulb.command("relay", description="Allows you to send messages through the bot")
+@lightbulb.add_checks(lightbulb.human_only, is_trusted_user)
+@lightbulb.command("relay", description="Allows you to send messages through the bot.")
 @lightbulb.implements(lightbulb.SlashCommandGroup)
-async def relay_group(_: lightbulb.SlashContext):
+async def relay_group(_):
 	pass
 
 
 @relay_group.child
 @lightbulb.option(
-	"channel", "The relevant channel", hikari.TextableGuildChannel, required=True
+	"channel", "The relevant channel.", hikari.TextableGuildChannel, required=True
 )
 @lightbulb.command(
-	"set-channel", description="Sets the channel the bot will send your messages into"
+	"set-channel",
+	description="Sets the channel the bot will send your messages into.",
+	inherit_checks=True,
 )
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def set_channel(ctx: lightbulb.SlashContext):
+async def set_channel_command(ctx: lightbulb.SlashContext):
 	await relay_plugin.set_channel(ctx)

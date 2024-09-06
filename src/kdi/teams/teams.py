@@ -31,18 +31,13 @@ class TeamsPlugin(lightbulb.Plugin):
 		kdi.subscribe(hikari.InteractionCreateEvent, self.on_interaction)
 
 	async def start(self, ctx: lightbulb.SlashContext):
-		user = ctx.user
-		if user.is_bot:
-			return
-		if user.id not in self._trusted_user_ids:
-			await ctx.respond(
-				UNTRUSTED_USER_RESPONSE, flags=hikari.MessageFlag.EPHEMERAL
-			)
-			return
 		self._state.reset()
-		self._state.add_player({user.username}, True)
+		self._state.add_player({ctx.user.username}, True)
 		await self._cores_message.create(ctx, self._state.cores)
 		await self._players_message.create(ctx)
+
+	def is_trusted_user(self, user_id: hikari.Snowflakeish):
+		return user_id in self._trusted_user_ids
 
 	async def check_players_interaction(self, interaction: hikari.ComponentInteraction):
 		if not self._players_message.matches(interaction.message):
@@ -74,17 +69,30 @@ class TeamsPlugin(lightbulb.Plugin):
 teams_plugin = TeamsPlugin()
 
 
+@lightbulb.Check
+async def is_trusted_user(ctx: lightbulb.Context):
+	success = teams_plugin.is_trusted_user(ctx.user.id)
+	if not success:
+		await ctx.respond(UNTRUSTED_USER_RESPONSE, flags=hikari.MessageFlag.EPHEMERAL)
+	return success
+
+
 @teams_plugin.command
+@lightbulb.add_checks(lightbulb.human_only, is_trusted_user)
 @lightbulb.command(
-	"teams", description="Allows you to generate randomized teams of players"
+	"teams", description="Allows you to generate randomized teams of players."
 )
 @lightbulb.implements(lightbulb.SlashCommandGroup)
-async def teams_group(_: lightbulb.SlashContext):
+async def teams_group(_):
 	pass
 
 
 @teams_group.child
-@lightbulb.command("start", description="Starts a new session of the teams system")
+@lightbulb.command(
+	"start",
+	description="Starts a new session of the teams system.",
+	inherit_checks=True,
+)
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def start(ctx: lightbulb.SlashContext):
+async def start_command(ctx: lightbulb.SlashContext):
 	await teams_plugin.start(ctx)

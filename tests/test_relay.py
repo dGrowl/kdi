@@ -9,7 +9,10 @@ import pytest
 from kdi.bot import kdi
 from kdi.relay.relay import (
 	CHANNEL_NOT_SET_RESPONSE,
+	is_trusted_user,
+	relay_group,
 	RelayPlugin,
+	set_channel_command,
 	SET_CHANNEL_SUCCESS_RESPONSE,
 	UNTRUSTED_USER_RESPONSE,
 )
@@ -147,3 +150,16 @@ class TestOnDM:
 		relay = RelayPlugin()
 		await relay.on_dm(sample_dm_event)
 		message_creator.assert_not_called()
+
+
+class TestCommandGroup:
+	def test_checks_if_human(self):
+		assert lightbulb.human_only in relay_group.checks
+
+	def test_checks_if_trusted_user(self):
+		assert is_trusted_user in relay_group.checks
+
+
+class TestSetChannelCommand:
+	def test_inherits_checks(self):
+		assert set_channel_command.inherit_checks
