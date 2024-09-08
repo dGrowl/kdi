@@ -38,6 +38,10 @@ class CoresMessage:
 			return
 		await self._message.edit(embed=self.build_embed(cores))
 
+	async def check_delete(self, event: hikari.GuildMessageDeleteEvent):
+		if self._message and self._message.id == event.message_id:
+			self._message = None
+
 	def build_embed(self, cores: set[Player]):
 		embed = hikari.Embed(
 			title=":pilot: Cores",

@@ -132,6 +132,7 @@ class TeamsPlugin(lightbulb.Plugin):
 		)
 
 	async def on_gm_delete(self, event: hikari.GuildMessageDeleteEvent):
+		await self._cores_message.check_delete(event)
 		await self._players_message.check_delete(event)
 
 	async def on_interaction(self, event: hikari.InteractionCreateEvent):
