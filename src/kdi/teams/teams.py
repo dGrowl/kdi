@@ -49,7 +49,7 @@ class TeamsPlugin(lightbulb.Plugin):
 		if ctx.options["auto-core"]:
 			self._state.add_core({ctx.user.username})
 		await self._cores_message.create(ctx, self._state.cores)
-		await self._players_message.create(ctx)
+		await self._players_message.create(ctx, self._state.players - self._state.cores)
 
 	def build_add_core_success_embed(self, core_names: KeySet):
 		embed = hikari.Embed(
@@ -126,7 +126,7 @@ class TeamsPlugin(lightbulb.Plugin):
 			modified |= self._state.remove_player({interaction.user.username})
 		if modified:
 			await self._cores_message.update(self._state.cores)
-			await self._players_message.update(self._state.players)
+			await self._players_message.update(self._state.players - self._state.cores)
 		await interaction.create_initial_response(
 			hikari.ResponseType.DEFERRED_MESSAGE_UPDATE
 		)

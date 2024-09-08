@@ -69,7 +69,9 @@ class TestPluginStart:
 		teams = TeamsPlugin()
 		await teams.start(start_context)
 
-		pm_creator.assert_called_once_with(start_context)
+		pm_creator.assert_called_once_with(
+			start_context, teams._state._players - teams._state._cores
+		)
 
 
 class TestPluginOnGMDelete:
