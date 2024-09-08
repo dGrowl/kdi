@@ -46,7 +46,7 @@ class TeamsPlugin(lightbulb.Plugin):
 
 	async def start(self, ctx: lightbulb.SlashContext):
 		self._state.reset()
-		self._state.add_player({ctx.user.username}, True)
+		self._state.add_core({ctx.user.username})
 		await self._cores_message.create(ctx, self._state.cores)
 		await self._players_message.create(ctx)
 
@@ -92,7 +92,7 @@ class TeamsPlugin(lightbulb.Plugin):
 	async def add_core(self, ctx: lightbulb.SlashContext):
 		names = get_usernames_from_options(ctx.options)
 		embed = self.build_add_core_success_embed(names)
-		if self._state.add_player(names, True):
+		if self._state.add_core(names):
 			await self._cores_message.update(self._state.cores)
 		else:
 			embed = self.build_add_core_error_embed(names)
@@ -105,7 +105,7 @@ class TeamsPlugin(lightbulb.Plugin):
 	async def remove_core(self, ctx: lightbulb.SlashContext):
 		names = get_usernames_from_options(ctx.options)
 		embed = self.build_remove_core_success_embed(names)
-		if self._state.remove_player(names):
+		if self._state.remove_core(names):
 			await self._cores_message.update(self._state.cores)
 		else:
 			embed = self.build_remove_core_error_embed(names)

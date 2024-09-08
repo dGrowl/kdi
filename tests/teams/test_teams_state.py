@@ -45,6 +45,67 @@ def players_6():
 	return [{name} for name in "abcdef"]
 
 
+class TestAddCore:
+	def test_returns_true_on_success(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		assert state.add_core({"k"})
+
+	def test_returns_false_on_failure(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		assert state.add_core({"x"})
+
+	def test_adds_new_player_to_cores(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		state.add_core({"k"})
+		assert Player("k") in state._cores
+
+	def test_adds_existing_player_to_cores(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		state.add_core({"a"})
+		assert Player("a") in state._cores
+
+	def test_cleans_overlapping_players(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		state.add_player({"d", "e"})
+		state.add_core({"d"})
+		assert state._players == {
+			Player("a"),
+			Player("b"),
+			Player("c"),
+			Player("d"),
+			Player("e"),
+		}
+
+	def test_keep_existing_player_in_players(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		state.add_core({"a"})
+		assert Player("a") in state._players
+
+	def test_repels_cores_from_each_other(self, cores_2_1: list[KeySet]):
+		state = TeamsState()
+		state.add_core(cores_2_1[0])
+
+		assert not state._forces["x"] and not state._forces["y"]
+
+		state.add_core(cores_2_1[1])
+
+		assert state._forces["x"]["z"] == state._forces["y"]["z"] == STRONG_FORCE
+
+
+class TestRemoveCore:
+	def test_returns_true_on_success(self, cores_2_1: list[KeySet]):
+		state = TeamsState(cores=cores_2_1)
+		assert state.remove_core({"z"})
+
+	def test_returns_false_on_nonexistent(self, cores_2_1: list[KeySet]):
+		state = TeamsState(cores=cores_2_1)
+		assert not state.remove_core({"k"})
+
+	def test_fails_on_partial_match(self, cores_2_1: list[KeySet]):
+		state = TeamsState(cores=cores_2_1)
+		assert not state.remove_core({"x"})
+
+
 class TestAddPlayer:
 	def test_returns_true_on_success(self):
 		state = TeamsState()
@@ -53,16 +114,6 @@ class TestAddPlayer:
 	def test_returns_false_on_duplicate(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
 		assert not state.add_player(players_3[0])
-
-	def test_repels_cores_from_each_other(self, cores_2_1: list[KeySet]):
-		state = TeamsState()
-		state.add_player(cores_2_1[0], True)
-
-		assert not state._forces["x"] and not state._forces["y"]
-
-		state.add_player(cores_2_1[1], True)
-
-		assert state._forces["x"]["z"] == state._forces["y"]["z"] == STRONG_FORCE
 
 
 class TestRemovePlayer:

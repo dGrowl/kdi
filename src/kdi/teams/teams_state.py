@@ -41,7 +41,7 @@ class TeamsState:
 		self._players = set()
 		if cores is not None:
 			for c in cores:
-				self.add_player(c, True)
+				self.add_core(c)
 		if players is not None:
 			for p in players:
 				self.add_player(p)
@@ -59,16 +59,40 @@ class TeamsState:
 	def cores(self):
 		return self._cores
 
-	def add_player(self, names: KeySet, is_core: bool = False):
+	def add_core(self, names: KeySet):
+		new_core = Player(names)
+		for c in self._cores:
+			if new_core & c:
+				return False
+		players_to_add: set[Player] = set()
+		players_to_remove: set[Player] = set()
+		for p in self._players:
+			player_without_core_members = p - new_core
+			if len(p) != len(player_without_core_members):
+				if player_without_core_members:
+					players_to_add.add(player_without_core_members)
+				players_to_remove.add(p)
+		for c in self._cores:
+			self._forces.repel_pairs(product(new_core, c))
+		self._players -= players_to_remove
+		self._players |= players_to_add
+		self._players.add(new_core)
+		self._cores.add(new_core)
+		return True
+
+	def remove_core(self, names: KeySet):
+		core = Player(names)
+		if core in self._cores:
+			self._cores.discard(core)
+			self._players.discard(core)
+			return True
+		return False
+
+	def add_player(self, names: KeySet):
 		for p in self._players:
 			if names & p:
 				return False
-		new_player = Player(names)
-		if is_core:
-			for c in self._cores:
-				self._forces.repel_pairs(product(new_player, c))
-			self._cores.add(new_player)
-		self._players.add(new_player)
+		self._players.add(Player(names))
 		return True
 
 	def remove_player(self, names: KeySet):
@@ -145,89 +169,3 @@ class TeamsState:
 		for t in teams:
 			self.record_historic_force(t)
 		return teams
-
-	# def generate(self, max_team_size: int):
-	# 	n_players = sum(len(p) for p in self._players)
-	# 	teams = [Team(n) for n in calc_team_sizes(n_players, max_team_size)]
-	# 	pool = self._players.copy()
-	# 	priority = self.build_priority()
-	# 	for player in priority:
-	# 		if player not in pool:
-	# 			continue
-	# 		for t in teams:
-	# 			if t.remaining_space >= len(player):
-	# 				t.add_members(player)
-	# 				pool.discard(player)
-	# 				self.fill_team(pool, t)
-	# 				break
-	# 	for t in teams:
-	# 		self.record_team(t)
-	# 	return teams
-
-	# def build_order(self):
-	# 	return sorted(
-	# 		self._players,
-	# 		key=lambda p: (len(p), self._weights.get_bias_count(p), random()),
-	# 		reverse=True,
-	# 	)
-
-	# def build_empty_teams(self, max_size: int, players: set[Player]):
-	# 	n_players = sum(len(p) for p in players)
-	# 	team_sizes = shuffled(calc_team_sizes(n_players, max_size))
-	# 	teams = [Team(capacity) for capacity in team_sizes]
-	# 	return teams
-
-	# def get_optimal_teammate(
-	# 	self, pool: set[Player], team: Team, out_weights: NodeWeights
-	# ):
-	# 	optimal_player = None
-	# 	min_force = inf
-	# 	for player in pool:
-	# 		if len(player) > team.remaining_space:
-	# 			continue
-	# 		weight = -inf
-	# 		external_force = -inf
-	# 		for name in player:
-	# 			weight = max(weight, out_weights[name])
-	# 			external_force = max(
-	# 				external_force,
-	# 				self._weights.get_external_force(
-	# 					name, {name for p in pool for name in p}
-	# 				),
-	# 			)
-	# 		force = weight + external_force
-	# 		if force < min_force:
-	# 			min_force = force
-	# 			optimal_player = player
-	# 	return optimal_player
-
-	# def fill_team(self, pool: set[Player], team: Team):
-	# 	out_weights = NodeWeights()
-	# 	for name in team.members:
-	# 		out_weights.update(self._weights[name])
-	# 	while pool and team.has_space:
-	# 		player = self.get_optimal_teammate(pool, team, out_weights)
-	# 		if player is None:
-	# 			break
-	# 		team.add_members(player)
-	# 		pool.discard(player)
-	# 		for name in player:
-	# 			out_weights.update(self._weights[name])
-
-	# def generate(self, max_team_size: int):
-	# 	pool = self._players.copy()
-	# 	priority = self.build_order()
-	# 	teams = self.build_empty_teams(max_team_size, pool)
-	# 	for player in priority:
-	# 		if player not in pool:
-	# 			continue
-	# 		for t in teams:
-	# 			if t.remaining_space >= len(player):
-	# 				t.add_members(player)
-	# 				pool.discard(player)
-	# 				self.fill_team(pool, t)
-	# 				break
-	# 	for t in teams:
-	# 		self.fill_team(pool, t)
-	# 		self.update_weights(t)
-	# 	return teams
