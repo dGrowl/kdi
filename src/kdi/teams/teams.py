@@ -46,7 +46,8 @@ class TeamsPlugin(lightbulb.Plugin):
 
 	async def start(self, ctx: lightbulb.SlashContext):
 		self._state.reset()
-		self._state.add_core({ctx.user.username})
+		if ctx.options["auto-core"]:
+			self._state.add_core({ctx.user.username})
 		await self._cores_message.create(ctx, self._state.cores)
 		await self._players_message.create(ctx)
 
@@ -164,6 +165,12 @@ async def teams_group(_):
 
 
 @teams_group.child
+@lightbulb.option(
+	"auto-core",
+	description="Add the command executor to cores. (default=True)",
+	type=bool,
+	default=True,
+)
 @lightbulb.command(
 	"start",
 	description="Starts a new session of the teams system.",
