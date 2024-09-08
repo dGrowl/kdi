@@ -30,6 +30,7 @@ class TeamsState:
 	_cores: set[Player]
 	_forces: MagneticGraph
 	_players: set[Player]
+	_round_number: int
 
 	def __init__(
 		self,
@@ -39,6 +40,8 @@ class TeamsState:
 		self._cores = set()
 		self._forces = MagneticGraph()
 		self._players = set()
+		self._round_number = 0
+
 		if cores is not None:
 			for c in cores:
 				self.add_core(c)
@@ -50,6 +53,7 @@ class TeamsState:
 		self._cores.clear()
 		self._forces.clear()
 		self._players.clear()
+		self._round_number = 0
 
 	@property
 	def players(self):
@@ -59,23 +63,30 @@ class TeamsState:
 	def cores(self):
 		return self._cores
 
-	def add_core(self, names: KeySet):
-		new_core = Player(names)
-		for c in self._cores:
-			if new_core & c:
-				return False
+	@property
+	def round_number(self):
+		return self._round_number
+
+	def separate_core_from_players(self, core: Player):
 		players_to_add: set[Player] = set()
 		players_to_remove: set[Player] = set()
 		for p in self._players:
-			player_without_core_members = p - new_core
+			player_without_core_members = p - core
 			if len(p) != len(player_without_core_members):
 				if player_without_core_members:
 					players_to_add.add(player_without_core_members)
 				players_to_remove.add(p)
 		for c in self._cores:
-			self._forces.repel_pairs(product(new_core, c))
+			self._forces.repel_pairs(product(core, c))
 		self._players -= players_to_remove
 		self._players |= players_to_add
+
+	def add_core(self, names: KeySet):
+		new_core = Player(names)
+		for c in self._cores:
+			if new_core & c:
+				return False
+		self.separate_core_from_players(new_core)
 		self._players.add(new_core)
 		self._cores.add(new_core)
 		return True
@@ -168,4 +179,5 @@ class TeamsState:
 					break
 		for t in teams:
 			self.record_historic_force(t)
+		self._round_number += 1
 		return teams

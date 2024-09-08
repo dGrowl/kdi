@@ -17,3 +17,26 @@ core_name_components = [
 		"Water",
 	]
 ]
+team_name_components = [
+	["Red", "Orange", "Yellow", "Green", "Blue", "Purple"],
+	[
+		"Bears",
+		"Cardinals",
+		"Falcons",
+		"Lions",
+		"Panthers",
+		"Rams",
+		"Tigers",
+	]
+]
+player_emojis = [
+	":confounded:",
+	":disguised_face:",
+	":face_with_monocle:",
+	":face_with_spiral_eyes:",
+	":fearful:",
+	":innocent:",
+	":star_struck:",
+	":sunglasses:",
+	":zany_face:",
+]

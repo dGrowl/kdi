@@ -9,6 +9,7 @@ from .players_message import (
 	PLAYER_AVAILABLE_ID,
 	PLAYER_UNAVAILABLE_ID,
 )
+from .teams_message import TeamsMessage
 from .teams_state import KeySet, TeamsState
 
 UNTRUSTED_USER_RESPONSE = ":no_entry: Only trusted users can make teams. Sorry!"
@@ -116,6 +117,11 @@ class TeamsPlugin(lightbulb.Plugin):
 			embed=embed,
 		)
 
+	async def generate(self, ctx: lightbulb.SlashContext):
+		teams = self._state.generate(ctx.options["max-size"])
+		message = TeamsMessage()
+		await ctx.respond(embed=message.build_embed(self._state.round_number, teams))
+
 	async def check_players_interaction(self, interaction: hikari.ComponentInteraction):
 		if not self._players_message.matches(interaction.message):
 			return
@@ -182,31 +188,19 @@ async def start_command(ctx: lightbulb.SlashContext):
 	await teams_plugin.start(ctx)
 
 
+MAX_PLAYERS = 4
+
 PLAYER_OPTIONS = [
 	lightbulb.option(
-		"player-4",
-		description="The fourth player who will be in the core.",
+		f"player-{i}",
+		description=f"The {ordinal} player who will be in the core.",
 		default=None,
 		type=hikari.User,
-	),
-	lightbulb.option(
-		"player-3",
-		description="The third player who will be in the core.",
-		default=None,
-		type=hikari.User,
-	),
-	lightbulb.option(
-		"player-2",
-		description="The second player who will be in the core.",
-		default=None,
-		type=hikari.User,
-	),
-	lightbulb.option(
-		"player-1",
-		description="The first player who will be in the core.",
-		required=True,
-		type=hikari.User,
-	),
+	)
+	for (i, ordinal) in zip(
+		range(1, MAX_PLAYERS + 1),
+		["first", "second", "third", "fourth"],
+	)
 ]
 
 
@@ -238,3 +232,22 @@ async def add_core_command(ctx: lightbulb.SlashContext):
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def remove_core_command(ctx: lightbulb.SlashContext):
 	await teams_plugin.remove_core(ctx)
+
+
+@teams_group.child
+@lightbulb.option(
+	"max-size",
+	description="The largest possible team size. (default=3)",
+	type=int,
+	default=3,
+	min_value=2,
+	max_value=4,
+)
+@lightbulb.command(
+	"generate",
+	description="Creates randomized teams based on the current cores/players.",
+	inherit_checks=True,
+)
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def generate_command(ctx: lightbulb.SlashContext):
+	await teams_plugin.generate(ctx)
