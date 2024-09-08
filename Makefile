@@ -7,7 +7,7 @@ lint:
 	ruff check $(PY_DIRS)
 
 test:
-	pytest
+	pytest -vx
 
 dev:
 	python -m kdi
