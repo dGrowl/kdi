@@ -2,7 +2,7 @@ import hikari
 import lightbulb
 
 from ..bot import kdi
-from ..util import get_config_value
+from ..util import check_flag, get_config_value, TEST_DATA_FLAG
 from .cores_message import CoresMessage
 from .players_message import (
 	PlayersMessage,
@@ -47,10 +47,18 @@ class TeamsPlugin(lightbulb.Plugin):
 
 	async def start(self, ctx: lightbulb.SlashContext):
 		self._state.reset()
+		if check_flag(TEST_DATA_FLAG):
+			self.load_test_data()
 		if ctx.options["auto-core"]:
 			self._state.add_core({ctx.user.username})
 		await self._cores_message.create(ctx, self._state.cores)
 		await self._players_message.create(ctx, self._state.players - self._state.cores)
+
+	def load_test_data(self):
+		for c in map(set, ["xy", "z"]):
+			self._state.add_core(c)
+		for p in map(set, ["a", "b", "cd", "e", "f", "ghi"]):
+			self._state.add_player(p)
 
 	def build_add_core_success_embed(self, core_names: KeySet):
 		embed = hikari.Embed(

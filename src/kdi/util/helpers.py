@@ -1,8 +1,16 @@
 from copy import deepcopy
 from random import shuffle
 from typing import Iterable, TypeVar
+from sys import argv
 
 T = TypeVar("T")
+
+
+TEST_DATA_FLAG = "--test-data"
+
+
+def check_flag(flag: str):
+	return flag in argv
 
 
 def shuffled(x: Iterable[T]):
