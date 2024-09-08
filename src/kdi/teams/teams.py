@@ -274,6 +274,7 @@ PLAYER_OPTIONS = [
 		f"player-{i}",
 		description=f"The {ordinal} player who will be in the core.",
 		default=None,
+		required=(i == 1),
 		type=hikari.User,
 	)
 	for (i, ordinal) in zip(
