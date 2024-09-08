@@ -45,14 +45,22 @@ class TeamsPlugin(lightbulb.Plugin):
 		kdi.subscribe(hikari.GuildMessageDeleteEvent, self.on_gm_delete)
 		kdi.subscribe(hikari.InteractionCreateEvent, self.on_interaction)
 
+	@property
+	def cores(self):
+		return self._state._cores
+
+	@property
+	def players(self):
+		return self._state._players - self._state._cores
+
 	async def start(self, ctx: lightbulb.SlashContext):
 		self._state.reset()
 		if check_flag(TEST_DATA_FLAG):
 			self.load_test_data()
 		if ctx.options["auto-core"]:
 			self._state.add_core({ctx.user.username})
-		await self._cores_message.create(ctx, self._state.cores)
-		await self._players_message.create(ctx, self._state.players - self._state.cores)
+		await self._cores_message.create(ctx, self.cores)
+		await self._players_message.create(ctx, self.players)
 
 	def load_test_data(self):
 		for c in map(set, ["xy", "z"]):
@@ -103,7 +111,7 @@ class TeamsPlugin(lightbulb.Plugin):
 		names = get_usernames_from_options(ctx.options)
 		embed = self.build_add_core_success_embed(names)
 		if self._state.add_core(names):
-			await self._cores_message.update(self._state.cores)
+			await self._cores_message.update(self.cores)
 		else:
 			embed = self.build_add_core_error_embed(names)
 		await ctx.respond(
@@ -116,7 +124,69 @@ class TeamsPlugin(lightbulb.Plugin):
 		names = get_usernames_from_options(ctx.options)
 		embed = self.build_remove_core_success_embed(names)
 		if self._state.remove_core(names):
-			await self._cores_message.update(self._state.cores)
+			await self._cores_message.update(self.cores)
+		else:
+			embed = self.build_remove_core_error_embed(names)
+		await ctx.respond(
+			hikari.ResponseType.MESSAGE_CREATE,
+			delete_after=SELF_DESTRUCT_TIME_SECS,
+			embed=embed,
+		)
+
+	def build_add_player_success_embed(self, names: KeySet):
+		embed = hikari.Embed(
+			color=self._color,
+			description=f"Added new playerset: **{" / ".join(names)}**",
+			title=":white_check_mark: Add Player: Success",
+		)
+		embed.set_footer(SELF_DESTRUCT_FOOTER)
+		return embed
+
+	def build_add_player_error_embed(self, names: KeySet):
+		embed = hikari.Embed(
+			color=self._color,
+			description=f"**{" / ".join(names)}** overlaps with existing players.",
+			title=":stop_sign: Add Player: Failure",
+		)
+		embed.set_footer(SELF_DESTRUCT_FOOTER)
+		return embed
+
+	def build_remove_player_success_embed(self, names: KeySet):
+		embed = hikari.Embed(
+			color=self._color,
+			description=f"**{" / ".join(names)}** is no longer a playerset.",
+			title=":white_check_mark: Remove Player: Success",
+		)
+		embed.set_footer(SELF_DESTRUCT_FOOTER)
+		return embed
+
+	def build_remove_player_error_embed(self, names: KeySet):
+		embed = hikari.Embed(
+			color=self._color,
+			description=f"**{" / ".join(names)}** is not currently a playerset.",
+			title=":stop_sign: Remove Player: Failure",
+		)
+		embed.set_footer(SELF_DESTRUCT_FOOTER)
+		return embed
+
+	async def add_player(self, ctx: lightbulb.SlashContext):
+		names = get_usernames_from_options(ctx.options)
+		embed = self.build_add_player_success_embed(names)
+		if self._state.add_player(names):
+			await self._players_message.update(self.players)
+		else:
+			embed = self.build_add_core_error_embed(names)
+		await ctx.respond(
+			hikari.ResponseType.MESSAGE_CREATE,
+			delete_after=SELF_DESTRUCT_TIME_SECS,
+			embed=embed,
+		)
+
+	async def remove_player(self, ctx: lightbulb.SlashContext):
+		names = get_usernames_from_options(ctx.options)
+		embed = self.build_remove_core_success_embed(names)
+		if self._state.remove_core(names):
+			await self._cores_message.update(self.cores)
 		else:
 			embed = self.build_remove_core_error_embed(names)
 		await ctx.respond(
@@ -134,13 +204,14 @@ class TeamsPlugin(lightbulb.Plugin):
 		if not self._players_message.matches(interaction.message):
 			return
 		modified = False
+		player = {interaction.user.username}
 		if interaction.custom_id == PLAYER_AVAILABLE_ID:
-			modified |= self._state.add_player({interaction.user.username})
+			modified |= self._state.add_player(player)
 		elif interaction.custom_id == PLAYER_UNAVAILABLE_ID:
-			modified |= self._state.remove_player({interaction.user.username})
+			modified |= self._state.remove_player(player)
 		if modified:
-			await self._cores_message.update(self._state.cores)
-			await self._players_message.update(self._state.players - self._state.cores)
+			await self._cores_message.update(self.cores)
+			await self._players_message.update(self.players)
 		await interaction.create_initial_response(
 			hikari.ResponseType.DEFERRED_MESSAGE_UPDATE
 		)
@@ -240,6 +311,30 @@ async def add_core_command(ctx: lightbulb.SlashContext):
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def remove_core_command(ctx: lightbulb.SlashContext):
 	await teams_plugin.remove_core(ctx)
+
+
+@teams_group.child
+@player_options
+@lightbulb.command(
+	"add-player",
+	description="Adds a playerset to the teams system.",
+	inherit_checks=True,
+)
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def add_player_command(ctx: lightbulb.SlashContext):
+	await teams_plugin.add_player(ctx)
+
+
+@teams_group.child
+@player_options
+@lightbulb.command(
+	"remove-player",
+	description="Removes a playerset from the teams system.",
+	inherit_checks=True,
+)
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def remove_player_command(ctx: lightbulb.SlashContext):
+	await teams_plugin.remove_player(ctx)
 
 
 @teams_group.child
