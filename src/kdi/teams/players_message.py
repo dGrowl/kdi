@@ -48,13 +48,14 @@ class PlayersMessage:
 		return self._message is not None and self._message.id == message.id
 
 	def build_embed(self, players: Collection[KeySet] = []):
+		n_players = sum(len(p) for p in players)
 		names = format_players(players)
 		return hikari.Embed(
 			title=PLAYERS_EMBED_TITLE,
 			color=self._color,
 			description=PLAYERS_EMBED_DESCRIPTION,
 		).add_field(
-			f"Active ({len(players)})",
+			f"Active ({n_players})",
 			"\n".join(names) if players else PLAYERS_EMBED_NO_PLAYERS_LIST,
 		)
 
