@@ -1,3 +1,5 @@
+from typing import Callable
+
 import hikari
 import lightbulb
 
@@ -53,6 +55,9 @@ class TeamsPlugin(lightbulb.Plugin):
 	def players(self):
 		return self._state._players - self._state._cores
 
+	def is_trusted_user(self, user_id: hikari.Snowflakeish):
+		return user_id in self._trusted_user_ids
+
 	async def start(self, ctx: lightbulb.SlashContext):
 		self._state.reset()
 		if check_flag(TEST_DATA_FLAG):
@@ -68,131 +73,84 @@ class TeamsPlugin(lightbulb.Plugin):
 		for p in map(set, ["a", "b", "cd", "e", "f", "ghi"]):
 			self._state.add_player(p)
 
-	def build_add_core_success_embed(self, core_names: KeySet):
+	def build_embed(self, title: str, description: str, success: bool):
+		status_icon = ":white_check_mark:" if success else ":stop_sign:"
 		embed = hikari.Embed(
 			color=self._color,
-			description=f"Added new core: **{" / ".join(core_names)}**",
-			title=":white_check_mark: Add Core: Success",
+			description=description,
+			title=f"{status_icon} {title}",
 		)
 		embed.set_footer(SELF_DESTRUCT_FOOTER)
 		return embed
 
-	def build_add_core_error_embed(self, core_names: KeySet):
-		embed = hikari.Embed(
-			color=self._color,
-			description=f"**{" / ".join(core_names)}** overlaps with existing cores.",
-			title=":stop_sign: Add Core: Failure",
-		)
-		embed.set_footer(SELF_DESTRUCT_FOOTER)
-		return embed
-
-	def build_remove_core_success_embed(self, core_names: KeySet):
-		embed = hikari.Embed(
-			color=self._color,
-			description=f"**{" / ".join(core_names)}** is no longer a core.",
-			title=":white_check_mark: Remove Core: Success",
-		)
-		embed.set_footer(SELF_DESTRUCT_FOOTER)
-		return embed
-
-	def build_remove_core_error_embed(self, core_names: KeySet):
-		embed = hikari.Embed(
-			color=self._color,
-			description=f"**{" / ".join(core_names)}** is not currently a core.",
-			title=":stop_sign: Remove Core: Failure",
-		)
-		embed.set_footer(SELF_DESTRUCT_FOOTER)
-		return embed
-
-	def is_trusted_user(self, user_id: hikari.Snowflakeish):
-		return user_id in self._trusted_user_ids
-
-	async def add_core(self, ctx: lightbulb.SlashContext):
+	async def handle_player_command(
+		self,
+		ctx: lightbulb.SlashContext,
+		action: str,
+		player_type: str,
+		success_msg: str,
+		error_msg: str,
+		state_method: Callable[[KeySet], bool],
+	):
 		names = get_usernames_from_options(ctx.options)
-		embed = self.build_add_core_success_embed(names)
-		if self._state.add_core(names):
+		if state_method(names):
+			embed = self.build_embed(
+				f"{action} {player_type}: Success",
+				f"**{' / '.join(names)}** {success_msg}",
+				True,
+			)
 			await self._cores_message.update(self.cores)
+			await self._players_message.update(self.players)
 		else:
-			embed = self.build_add_core_error_embed(names)
+			embed = self.build_embed(
+				f"{action} {player_type}: Failure",
+				f"**{' / '.join(names)}** {error_msg}",
+				False,
+			)
 		await ctx.respond(
 			hikari.ResponseType.MESSAGE_CREATE,
 			delete_after=SELF_DESTRUCT_TIME_SECS,
 			embed=embed,
+		)
+
+	async def add_core(self, ctx: lightbulb.SlashContext):
+		await self.handle_player_command(
+			ctx,
+			action="Add",
+			player_type="Core",
+			success_msg="has been added.",
+			error_msg="overlaps with existing cores.",
+			state_method=self._state.add_core,
 		)
 
 	async def remove_core(self, ctx: lightbulb.SlashContext):
-		names = get_usernames_from_options(ctx.options)
-		embed = self.build_remove_core_success_embed(names)
-		if self._state.remove_core(names):
-			await self._cores_message.update(self.cores)
-		else:
-			embed = self.build_remove_core_error_embed(names)
-		await ctx.respond(
-			hikari.ResponseType.MESSAGE_CREATE,
-			delete_after=SELF_DESTRUCT_TIME_SECS,
-			embed=embed,
+		await self.handle_player_command(
+			ctx,
+			action="Remove",
+			player_type="Core",
+			success_msg="is no longer a core.",
+			error_msg="is not currently a core.",
+			state_method=self._state.remove_core,
 		)
-
-	def build_add_player_success_embed(self, names: KeySet):
-		embed = hikari.Embed(
-			color=self._color,
-			description=f"Added new playerset: **{" / ".join(names)}**",
-			title=":white_check_mark: Add Player: Success",
-		)
-		embed.set_footer(SELF_DESTRUCT_FOOTER)
-		return embed
-
-	def build_add_player_error_embed(self, names: KeySet):
-		embed = hikari.Embed(
-			color=self._color,
-			description=f"**{" / ".join(names)}** overlaps with existing players.",
-			title=":stop_sign: Add Player: Failure",
-		)
-		embed.set_footer(SELF_DESTRUCT_FOOTER)
-		return embed
-
-	def build_remove_player_success_embed(self, names: KeySet):
-		embed = hikari.Embed(
-			color=self._color,
-			description=f"**{" / ".join(names)}** is no longer a playerset.",
-			title=":white_check_mark: Remove Player: Success",
-		)
-		embed.set_footer(SELF_DESTRUCT_FOOTER)
-		return embed
-
-	def build_remove_player_error_embed(self, names: KeySet):
-		embed = hikari.Embed(
-			color=self._color,
-			description=f"**{" / ".join(names)}** is not currently a playerset.",
-			title=":stop_sign: Remove Player: Failure",
-		)
-		embed.set_footer(SELF_DESTRUCT_FOOTER)
-		return embed
 
 	async def add_player(self, ctx: lightbulb.SlashContext):
-		names = get_usernames_from_options(ctx.options)
-		embed = self.build_add_player_success_embed(names)
-		if self._state.add_player(names):
-			await self._players_message.update(self.players)
-		else:
-			embed = self.build_add_core_error_embed(names)
-		await ctx.respond(
-			hikari.ResponseType.MESSAGE_CREATE,
-			delete_after=SELF_DESTRUCT_TIME_SECS,
-			embed=embed,
+		await self.handle_player_command(
+			ctx,
+			action="Add",
+			player_type="Player",
+			success_msg="has been added.",
+			error_msg="overlaps with existing players.",
+			state_method=self._state.add_player,
 		)
 
 	async def remove_player(self, ctx: lightbulb.SlashContext):
-		names = get_usernames_from_options(ctx.options)
-		embed = self.build_remove_core_success_embed(names)
-		if self._state.remove_core(names):
-			await self._cores_message.update(self.cores)
-		else:
-			embed = self.build_remove_core_error_embed(names)
-		await ctx.respond(
-			hikari.ResponseType.MESSAGE_CREATE,
-			delete_after=SELF_DESTRUCT_TIME_SECS,
-			embed=embed,
+		await self.handle_player_command(
+			ctx,
+			action="Remove",
+			player_type="Player",
+			success_msg="is no longer a playerset.",
+			error_msg="is not currently a playerset.",
+			state_method=self._state.remove_player,
 		)
 
 	async def generate(self, ctx: lightbulb.SlashContext):
