@@ -2,7 +2,7 @@ import hikari
 from random import choice
 
 from ..util import get_config_value, shuffled
-from .team import Team
+from .teams_state import Team
 
 
 class TeamsMessage:
