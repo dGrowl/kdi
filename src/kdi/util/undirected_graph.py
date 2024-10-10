@@ -20,12 +20,11 @@ class UndirectedGraph:
 		lines: list[str] = []
 		for u, edges in self._weights.items():
 			for v, w in edges.items():
-				if u > v:
-					u, v = v, u
-				if (u, v) in seen:
+				pair = (u, v) if u < v else (v, u)
+				if pair in seen:
 					continue
-				lines.append(f"\t{u}-{v} = {w}")
-				seen.add((u, v))
+				lines.append(f"\t{pair[0]}-{pair[1]} = {w}")
+				seen.add(pair)
 		return "{\n" + "\n".join(sorted(lines)) + "\n}"
 
 	def __getitem__(self, key: Key):
