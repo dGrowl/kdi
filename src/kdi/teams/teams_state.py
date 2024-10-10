@@ -5,15 +5,14 @@ from typing import Optional, Sequence
 
 from ..util import get_config_value, KeySet, MagneticGraph
 
-Player = frozenset[str]
 Team = frozenset[str]
 
 
 class TeamsState:
 	_blocks: set[Team]
-	_cores: set[Player]
+	_cores: set[Team]
 	_forces: MagneticGraph
-	_players: set[Player]
+	_players: set[Team]
 	_round_number: int
 
 	def __init__(
@@ -64,7 +63,7 @@ class TeamsState:
 		return self._round_number
 
 	def add_core(self, names: KeySet):
-		new_core = Player(names)
+		new_core = Team(names)
 		for c in self._cores:
 			if new_core & c:
 				return False
@@ -74,7 +73,7 @@ class TeamsState:
 		return True
 
 	def remove_core(self, names: KeySet):
-		core = Player(names)
+		core = Team(names)
 		if core in self._cores:
 			self._cores.discard(core)
 			self._players.discard(core)
@@ -85,20 +84,20 @@ class TeamsState:
 		for p in self._players:
 			if names & p:
 				return False
-		self._players.add(Player(names))
+		self._players.add(Team(names))
 		return True
 
 	def remove_player(self, names: KeySet):
-		player = Player(names)
+		player = Team(names)
 		self._cores.discard(player)
 		if player in self._players:
 			self._players.discard(player)
 			return True
 		return False
 
-	def _separate_core_from_players(self, core: Player):
-		players_to_add: set[Player] = set()
-		players_to_remove: set[Player] = set()
+	def _separate_core_from_players(self, core: Team):
+		players_to_add: set[Team] = set()
+		players_to_remove: set[Team] = set()
 		for p in self._players:
 			player_without_core_members = p - core
 			if len(p) != len(player_without_core_members):
@@ -131,7 +130,7 @@ class TeamsState:
 		remainder = n_players % n_groups
 		return remainder if remainder != 0 else n_groups
 
-	def _find_optimal_pair(self, open_teams: set[Player], max_team_size: int):
+	def _find_optimal_pair(self, open_teams: set[Team], max_team_size: int):
 		all_names = {name for p in open_teams for name in p}
 		min_force = inf
 		optimal_team_a = optimal_team_b = None

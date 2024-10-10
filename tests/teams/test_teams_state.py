@@ -3,7 +3,7 @@ from typing import Sequence
 from pytest_mock import MockerFixture
 import pytest
 
-from kdi.teams.teams_state import Player, Team, TeamsState
+from kdi.teams.teams_state import Team, TeamsState
 from kdi.util import KeySet
 from kdi.util.undirected_graph import STRONG_FORCE
 
@@ -67,29 +67,24 @@ class TestAddCore:
 	def test_adds_new_player_to_cores(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
 		state.add_core({"k"})
-		assert Player("k") in state._cores
+		assert Team("k") in state._cores
 
 	def test_adds_existing_player_to_cores(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
 		state.add_core({"a"})
-		assert Player("a") in state._cores
+		assert Team("a") in state._cores
 
 	def test_cleans_overlapping_players(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
 		state.add_player({"d", "e"})
 		state.add_core({"d"})
-		assert state._players == {
-			Player("a"),
-			Player("b"),
-			Player("c"),
-			Player("d"),
-			Player("e"),
-		}
+
+		assert state._players == {Team(c) for c in "abcde"}
 
 	def test_keep_existing_player_in_players(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
 		state.add_core({"a"})
-		assert Player("a") in state._players
+		assert Team("a") in state._players
 
 	def test_repels_cores_from_each_other(self, cores_2_1: list[KeySet]):
 		state = TeamsState()
@@ -137,7 +132,7 @@ class TestRemovePlayer:
 
 class TestRecordHistoricForce:
 	def test_increments_all_pairs(self):
-		team = Player("abc")
+		team = Team("abc")
 		a, b, c = team
 		state = TeamsState()
 		state._record_historic_force(team)
@@ -212,8 +207,8 @@ class TestGenerate:
 		)
 
 	def test_places_multiplayer_together(self):
-		multi = Player("ef")
-		players = [Player(c) for c in "abcd"] + [multi]
+		multi = Team("ef")
+		players = [Team(c) for c in "abcd"] + [multi]
 		state = TeamsState(players=players)
 		teams = state.generate(3)
 
@@ -278,9 +273,9 @@ class TestGenerate:
 			"kdi.teams.teams_state.TeamsState._find_optimal_pair",
 			mocker.MagicMock(
 				side_effect=[
-					(Player("z"), Player("c")),
-					(Player("zc"), Player("a")),
-					(Player("xy"), Player("b")),
+					(Team("z"), Team("c")),
+					(Team("zc"), Team("a")),
+					(Team("xy"), Team("b")),
 				]
 			),
 		)

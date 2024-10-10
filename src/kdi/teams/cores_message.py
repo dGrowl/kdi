@@ -6,11 +6,11 @@ import hikari
 import lightbulb
 
 from ..util import get_config_value, shuffled
-from .teams_state import Player
+from .teams_state import Team
 
 
 class CoresMessage:
-	_assigned_names: DefaultDict[Player, str]
+	_assigned_names: DefaultDict[Team, str]
 	_color: str
 	_message: Optional[hikari.Message]
 	_possible_names: list[str]
@@ -29,11 +29,11 @@ class CoresMessage:
 			return self._possible_names.pop()
 		return "Null"
 
-	async def create(self, ctx: lightbulb.SlashContext, cores: set[Player]):
+	async def create(self, ctx: lightbulb.SlashContext, cores: set[Team]):
 		response = await ctx.respond(embed=self.build_embed(cores))
 		self._message = await response.message()
 
-	async def update(self, cores: set[Player]):
+	async def update(self, cores: set[Team]):
 		if self._message is None:
 			return
 		await self._message.edit(embed=self.build_embed(cores))
@@ -42,7 +42,7 @@ class CoresMessage:
 		if self._message and self._message.id == event.message_id:
 			self._message = None
 
-	def build_embed(self, cores: set[Player]):
+	def build_embed(self, cores: set[Team]):
 		embed = hikari.Embed(
 			title=":pilot: Cores",
 			color=self._color,

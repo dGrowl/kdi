@@ -5,7 +5,7 @@ import lightbulb
 
 from ..bot import kdi
 from ..util import get_config_value, KeySet
-from .teams_state import Player
+from .teams_state import Team
 
 
 PLAYER_AVAILABLE_ID = "PLAYER_AVAILABLE"
@@ -60,13 +60,13 @@ class PlayersMessage:
 			"\n".join(names) if players else PLAYERS_EMBED_NO_PLAYERS_LIST,
 		)
 
-	async def create(self, ctx: lightbulb.SlashContext, players: set[Player]):
+	async def create(self, ctx: lightbulb.SlashContext, players: set[Team]):
 		response = await ctx.respond(
 			embed=self.build_embed(players), component=ACTION_ROW
 		)
 		self._message = await response.message()
 
-	async def update(self, players: set[Player]):
+	async def update(self, players: set[Team]):
 		if self._message is None:
 			return
 		await self._message.edit(embed=self.build_embed(players))
