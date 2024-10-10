@@ -87,7 +87,8 @@ class TestAddCore:
 
 		state.add_core(cores_2_1[1])
 
-		assert state._forces["x"]["z"] == state._forces["y"]["z"] == STRONG_FORCE
+		assert state._forces.calc_internal_magnetism({"x"}, {"z"}) == STRONG_FORCE
+		assert state._forces.calc_internal_magnetism({"y"}, {"z"}) == STRONG_FORCE
 
 
 class TestRemoveCore:
@@ -106,8 +107,7 @@ class TestRemoveCore:
 
 class TestAddPlayer:
 	def test_returns_true_on_success(self):
-		state = TeamsState()
-		assert state.add_player({"a"})
+		assert TeamsState().add_player({"a"})
 
 	def test_returns_false_on_duplicate(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
@@ -120,8 +120,7 @@ class TestRemovePlayer:
 		assert state.remove_player(players_3[0])
 
 	def test_returns_false_on_nonexistent(self):
-		state = TeamsState()
-		assert not state.remove_player({"a"})
+		assert not TeamsState().remove_player({"a"})
 
 
 class TestRecordHistoricForce:
@@ -129,7 +128,7 @@ class TestRecordHistoricForce:
 		team = Player("abc")
 		a, b, c = team
 		state = TeamsState()
-		state.record_historic_force(team)
+		state._record_historic_force(team)
 
 		assert state._forces[a][b] == state._forces[a][c] == state._forces[b][c] == 1
 
@@ -153,22 +152,35 @@ class TestFindOptimalPair:
 			]
 		)
 		open_teams = state._players
-		a, b = state._find_optimal_pair(open_teams, 3)
+		pair = state._find_optimal_pair(open_teams, 3)
 
-		assert a == {"a"} and b == {"b"} or a == {"b"} and b == {"a"}
+		assert pair is not None
+		assert sort_keysets(pair) == [{"a"}, {"b"}]
 
 	def test_uses_external_force(self, cores_2_1, players_3):
 		state = TeamsState(cores_2_1, players_3)
 		state._forces.repel("z", "b")
-		a, b = state._find_optimal_pair(state._players, 3)
+		pair = state._find_optimal_pair(state._players, 3)
 
-		assert a == {"z"} and b in [{"a"}, {"c"}] or b == {"z"} and a in [{"a"}, {"c"}]
+		assert pair is not None
+		team_a, team_b = sort_keysets(pair)
+		assert team_a in [{"a"}, {"c"}]
+		assert team_b == {"z"}
 
 	def test_avoids_overfilling_teams(self):
 		state = TeamsState(players=[set("ab"), set("cd")])
-		a, b = state._find_optimal_pair(state._players, 3)
+		pair = state._find_optimal_pair(state._players, 3)
 
-		assert a is None and b is None
+		assert pair is None
+
+	def test_uses_historic_forces(self):
+		state = TeamsState(cores=[{"a"}, {"b"}], players=[{"c"}, {"d"}])
+		state._forces.increment("b", "d")
+		state._forces.add("b", "c", 2)
+		pair = state._find_optimal_pair(state._players, 3)
+
+		assert pair is not None
+		assert sort_keysets(pair) == [{"a"}, {"c"}]
 
 
 class TestGenerate:
@@ -222,7 +234,7 @@ class TestGenerate:
 	def test_records_historic_forces(
 		self, mocker: MockerFixture, players_3: list[KeySet]
 	):
-		recorder = mocker.spy(TeamsState, "record_historic_force")
+		recorder = mocker.spy(TeamsState, "_record_historic_force")
 
 		state = TeamsState(players=players_3)
 		teams = state.generate(3)

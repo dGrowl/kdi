@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict
+from itertools import product
 from typing import DefaultDict, Iterable, Union
 
 Key = str
@@ -71,39 +72,16 @@ class MagneticGraph(UndirectedGraph):
 		self._attractions.clear()
 		self._repulsions.clear()
 
-	def calc_magnetic_force_count(self, keys: KeySet) -> int:
-		attractions: set[Key] = set()
-		repulsions: set[Key] = set()
-		for w in keys:
-			attractions |= self._attractions[w]
-			repulsions |= self._repulsions[w]
-		return len(attractions - keys) + len(repulsions - keys)
-
-	def calc_external_forces(self, internal_keys: KeySet, external_keys: KeySet):
-		attractions = set()
-		repulsions = set()
-		for name in internal_keys:
-			attractions |= self._attractions[name]
-			repulsions |= self._repulsions[name]
-		attractions -= internal_keys
-		repulsions -= internal_keys
-		attractions &= external_keys
-		repulsions &= external_keys
-		return WEAK_FORCE * (len(attractions) - len(repulsions))
-
 	def reset_polarity(self, u: Key, v: Key):
 		if u in self._attractions[v]:
-			self.add(u, v, STRONG_FORCE)
 			self._attractions[u].discard(v)
 			self._attractions[v].discard(u)
 		elif u in self._repulsions[v]:
-			self.add(u, v, -STRONG_FORCE)
 			self._repulsions[u].discard(v)
 			self._repulsions[v].discard(u)
 
 	def attract(self, u: Key, v: Key):
 		self.reset_polarity(u, v)
-		self.add(u, v, -STRONG_FORCE)
 		self._attractions[u].add(v)
 		self._attractions[v].add(u)
 
@@ -113,10 +91,39 @@ class MagneticGraph(UndirectedGraph):
 
 	def repel(self, u: Key, v: Key):
 		self.reset_polarity(u, v)
-		self.add(u, v, STRONG_FORCE)
 		self._repulsions[u].add(v)
 		self._repulsions[v].add(u)
 
 	def repel_pairs(self, pairs: KeyPairs):
 		for u, v in pairs:
 			self.repel(u, v)
+
+	def calc_internal_magnetism(self, a: KeySet, b: KeySet):
+		attractions = set()
+		repulsions = set()
+		for u in a:
+			attractions |= self._attractions[u]
+			repulsions |= self._repulsions[u]
+		attractions &= b
+		repulsions &= b
+		return STRONG_FORCE * (len(repulsions) - len(attractions))
+
+	def calc_external_magnetism(self, internal_keys: KeySet, external_keys: KeySet):
+		attractions = set()
+		repulsions = set()
+		for name in internal_keys:
+			attractions |= self._attractions[name]
+			repulsions |= self._repulsions[name]
+		attractions &= external_keys
+		repulsions &= external_keys
+		return WEAK_FORCE * (len(attractions) - len(repulsions))
+
+	def calc_force(self, a: KeySet, b: KeySet, all_keys: KeySet):
+		internal_keys = a | b
+		external_keys = all_keys - internal_keys
+		f = 0
+		f += sum(self._weights[u][v] for u, v in product(a, b))
+		f -= sum(self._weights[u][v] for u, v in product(internal_keys, external_keys))
+		f += self.calc_internal_magnetism(a, b)
+		f += self.calc_external_magnetism(internal_keys, external_keys)
+		return f

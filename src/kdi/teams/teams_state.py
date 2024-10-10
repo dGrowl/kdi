@@ -50,20 +50,6 @@ class TeamsState:
 	def round_number(self):
 		return self._round_number
 
-	def _separate_core_from_players(self, core: Player):
-		players_to_add: set[Player] = set()
-		players_to_remove: set[Player] = set()
-		for p in self._players:
-			player_without_core_members = p - core
-			if len(p) != len(player_without_core_members):
-				if player_without_core_members:
-					players_to_add.add(player_without_core_members)
-				players_to_remove.add(p)
-		for c in self._cores:
-			self._forces.repel_pairs(product(core, c))
-		self._players -= players_to_remove
-		self._players |= players_to_add
-
 	def add_core(self, names: KeySet):
 		new_core = Player(names)
 		for c in self._cores:
@@ -97,13 +83,22 @@ class TeamsState:
 			return True
 		return False
 
-	def record_historic_force(self, t: Team):
-		self._forces.increment_pairs(combinations(t, 2))
+	def _separate_core_from_players(self, core: Player):
+		players_to_add: set[Player] = set()
+		players_to_remove: set[Player] = set()
+		for p in self._players:
+			player_without_core_members = p - core
+			if len(p) != len(player_without_core_members):
+				if player_without_core_members:
+					players_to_add.add(player_without_core_members)
+				players_to_remove.add(p)
+		for c in self._cores:
+			self._forces.repel_pairs(product(core, c))
+		self._players -= players_to_remove
+		self._players |= players_to_add
 
-	def _calc_pairing_force(self, p1: Player, p2: Player, external_names: KeySet):
-		historic = sum(self._forces[u][v] for u, v in product(p1, p2))
-		external = self._forces.calc_external_forces(p1 | p2, external_names)
-		return historic + external
+	def _record_historic_force(self, t: Team):
+		self._forces.increment_pairs(combinations(t, 2))
 
 	@staticmethod
 	def _calc_n_max_teams(n_players: int, max_team_size: int):
@@ -113,17 +108,8 @@ class TeamsState:
 		remainder = n_players % n_groups
 		return remainder if remainder != 0 else n_groups
 
-	@staticmethod
-	def _build_automatic_teams(pool, max_team_size: int):
-		teams = set()
-		for p in pool:
-			if len(p) >= max_team_size:
-				teams.add(p)
-
-		return teams
-
 	def _find_optimal_pair(self, open_teams: set[Player], max_team_size: int):
-		external_names = {name for p in open_teams for name in p}
+		all_names = {name for p in open_teams for name in p}
 		min_force = inf
 		optimal_team_a = optimal_team_b = None
 		optimal_size = 0
@@ -133,12 +119,14 @@ class TeamsState:
 			new_len = len(p1) + len(p2)
 			if new_len > max_team_size:
 				continue
-			force = self._calc_pairing_force(p1, p2, external_names)
+			force = self._forces.calc_force(p1, p2, all_names)
 			if force < min_force or (force == min_force and new_len > optimal_size):
 				min_force = force
 				optimal_team_a = p1
 				optimal_team_b = p2
 				optimal_size = new_len
+		if optimal_team_a is None or optimal_team_b is None:
+			return None
 		return optimal_team_a, optimal_team_b
 
 	def _combine_teams(self, team_a, team_b, open_teams):
@@ -152,10 +140,10 @@ class TeamsState:
 		n_players = sum(len(p) for p in open_teams)
 		n_max_teams = self._calc_n_max_teams(n_players, max_team_size)
 		while open_teams:
-			team_a, team_b = self._find_optimal_pair(open_teams, max_team_size)
-			if team_a is None or team_b is None:
+			pair = self._find_optimal_pair(open_teams, max_team_size)
+			if pair is None:
 				break
-			new_team = self._combine_teams(team_a, team_b, open_teams)
+			new_team = self._combine_teams(pair[0], pair[1], open_teams)
 			if len(new_team) == max_team_size:
 				closed_teams.add(new_team)
 				n_max_teams -= 1
@@ -165,6 +153,6 @@ class TeamsState:
 				open_teams.add(new_team)
 		closed_teams |= open_teams
 		for t in closed_teams:
-			self.record_historic_force(t)
+			self._record_historic_force(t)
 		self._round_number += 1
 		return list(closed_teams)
