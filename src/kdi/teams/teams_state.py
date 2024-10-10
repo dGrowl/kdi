@@ -3,13 +3,14 @@ from math import ceil, inf
 from random import shuffle
 from typing import Optional, Sequence
 
-from ..util import KeySet, MagneticGraph
+from ..util import get_config_value, KeySet, MagneticGraph
 
 Player = frozenset[str]
 Team = frozenset[str]
 
 
 class TeamsState:
+	_blocks: set[Team]
 	_cores: set[Player]
 	_forces: MagneticGraph
 	_players: set[Player]
@@ -20,6 +21,7 @@ class TeamsState:
 		cores: Optional[Sequence[KeySet]] = None,
 		players: Optional[Sequence[KeySet]] = None,
 	):
+		self._blocks = set()
 		self._cores = set()
 		self._forces = MagneticGraph()
 		self._players = set()
@@ -32,11 +34,22 @@ class TeamsState:
 			for p in players:
 				self.add_player(p)
 
+		self._load_blocks()
+
 	def reset(self):
 		self._cores.clear()
 		self._forces.clear()
 		self._players.clear()
 		self._round_number = 0
+
+	def _load_blocks(self):
+		for name_pair in get_config_value("teams", "blocks"):
+			if len(name_pair) != 2:
+				raise RuntimeError(
+					"Each entry in the 'teams.blocks' config array must contain two usernames"
+				)
+			self._blocks.add(Team(name_pair))
+			self._forces.repel(name_pair[0], name_pair[1])
 
 	@property
 	def players(self):
@@ -100,6 +113,16 @@ class TeamsState:
 	def _record_historic_force(self, t: Team):
 		self._forces.increment_pairs(combinations(t, 2))
 
+	def _team_too_large(self, new_len: int, max_team_size: int):
+		return new_len > max_team_size
+
+	def _team_matches_block(self, t1: Team, t2: Team):
+		new_team = t1 | t2
+		for illegal_pair in self._blocks:
+			if illegal_pair.issubset(new_team):
+				return True
+		return False
+
 	@staticmethod
 	def _calc_n_max_teams(n_players: int, max_team_size: int):
 		n_groups = ceil(n_players / max_team_size)
@@ -117,7 +140,9 @@ class TeamsState:
 		shuffle(pairs)
 		for p1, p2 in pairs:
 			new_len = len(p1) + len(p2)
-			if new_len > max_team_size:
+			if self._team_too_large(new_len, max_team_size) or self._team_matches_block(
+				p1, p2
+			):
 				continue
 			force = self._forces.calc_force(p1, p2, all_names)
 			if force < min_force or (force == min_force and new_len > optimal_size):

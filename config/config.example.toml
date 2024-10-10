@@ -23,10 +23,8 @@ team_name_components = [
 		"Bears",
 		"Cardinals",
 		"Falcons",
-		"Lions",
 		"Panthers",
 		"Rams",
-		"Tigers",
 	]
 ]
 player_emojis = [
@@ -39,4 +37,8 @@ player_emojis = [
 	":star_struck:",
 	":sunglasses:",
 	":zany_face:",
+]
+blocks = [
+	["north", "south"],
+	["light", "dark"],
 ]

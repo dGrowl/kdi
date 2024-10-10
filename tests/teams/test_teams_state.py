@@ -3,9 +3,21 @@ from typing import Sequence
 from pytest_mock import MockerFixture
 import pytest
 
-from kdi.teams.teams_state import Player, TeamsState
+from kdi.teams.teams_state import Player, Team, TeamsState
 from kdi.util import KeySet
 from kdi.util.undirected_graph import STRONG_FORCE
+
+
+class TestTeamMatchesBlock:
+	def test_returns_true_on_match(self):
+		state = TeamsState()
+		state._blocks = {Team("ac")}
+		assert state._team_matches_block(Team("ab"), Team("c"))
+
+	def test_returns_false_on_no_match(self):
+		state = TeamsState()
+		state._blocks = {Team("ad")}
+		assert not state._team_matches_block(Team("ab"), Team("c"))
 
 
 class TestCalcNMaxTeams:
