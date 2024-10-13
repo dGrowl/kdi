@@ -126,38 +126,45 @@ class TestCalcInternalMagnetism:
 
 class TestCalcExternalMagnetism:
 	def test_no_force_with_empty_graph(self):
-		assert MagneticGraph().calc_external_magnetism(set(), set()) == 0
+		assert MagneticGraph().calc_external_magnetism(set(), []) == 0
 
 	def test_adds_attractions(self, a: str, b: str, c: str):
 		graph = MagneticGraph()
 		graph.attract(a, c)
-		assert graph.calc_external_magnetism({a, b}, {c}) == WEAK_FORCE
+		assert graph.calc_external_magnetism({a, b}, [{c}]) == WEAK_FORCE
 
 	def test_subtracts_repulsions(self, a: str, b: str, c: str):
 		graph = MagneticGraph()
 		graph.repel(a, c)
-		assert graph.calc_external_magnetism({a, b}, {c}) == -WEAK_FORCE
+		assert graph.calc_external_magnetism({a, b}, [{c}]) == -WEAK_FORCE
 
 	def test_returns_net(self, a: str, b: str, c: str, d: str):
 		graph = MagneticGraph()
 		graph.repel(a, c)
 		graph.attract(b, d)
-		assert graph.calc_external_magnetism({a, b}, {c, d}) == 0
+		assert graph.calc_external_magnetism({a, b}, [{c}, {d}]) == 0
 
 	def test_ignores_internal_forces(self, a: str, b: str, c: str):
 		graph = MagneticGraph()
 		graph.attract(a, c)
-		assert graph.calc_external_magnetism({a, c}, {b}) == 0
+		assert graph.calc_external_magnetism({a, c}, [{b}]) == 0
 
 	def test_ignores_irrelevant_forces(self, a: str, b: str, c: str, d: str):
 		graph = MagneticGraph()
 		graph.repel(c, d)
-		assert graph.calc_external_magnetism({a, b}, {c, d}) == 0
+		assert graph.calc_external_magnetism({a, b}, [{c}, {d}]) == 0
+
+	def test_counts_once_per_keyset(self, a: str, b: str, c: str, d: str):
+		graph = MagneticGraph()
+		graph.repel(b, c)
+		graph.repel(b, d)
+		assert graph.calc_external_magnetism({a, b}, [{c}, {d}]) == -2 * WEAK_FORCE
+		assert graph.calc_external_magnetism({a, b}, [{c, d}]) == -WEAK_FORCE
 
 
 class TestCalcForce:
 	def test_no_force_with_empty_graph(self):
-		assert MagneticGraph().calc_force(set(), set(), set()) == 0
+		assert MagneticGraph().calc_force(set(), set(), []) == 0
 
 	def test_adds_internal_weights(self, a: str, b: str):
 		graph = MagneticGraph()
@@ -166,7 +173,7 @@ class TestCalcForce:
 				(a, b, 1),
 			]
 		)
-		assert graph.calc_force({a}, {b}, set()) == 1
+		assert graph.calc_force({a}, {b}, []) == 1
 
 	def test_subtracts_external_weights(self, a: str, b: str, c: str):
 		graph = MagneticGraph()
@@ -176,14 +183,14 @@ class TestCalcForce:
 				(b, c, 2),
 			]
 		)
-		assert graph.calc_force({a}, {b}, {a, b, c}) == -1
+		assert graph.calc_force({a}, {b}, [{a}, {b}, {c}]) == -1
 
 	def test_ignores_key_order(self, a: str, b: str):
 		graph = MagneticGraph()
 		graph.repel(a, b)
 		assert (
-			graph.calc_force({a}, {b}, {a, b})
-			== graph.calc_force({b}, {a}, {a, b})
+			graph.calc_force({a}, {b}, [{a}, {b}])
+			== graph.calc_force({b}, {a}, [{a}, {b}])
 			== STRONG_FORCE
 		)
 
@@ -199,6 +206,6 @@ class TestCalcForce:
 		graph.attract(a, b)
 		graph.repel(b, c)
 		assert (
-			graph.calc_force({a}, {b}, {a, b, c})
+			graph.calc_force({a}, {b}, [{a}, {b}, {c}])
 			== 1 - 2 - 3 - STRONG_FORCE - WEAK_FORCE
 		)

@@ -107,22 +107,34 @@ class MagneticGraph(UndirectedGraph):
 		repulsions &= b
 		return STRONG_FORCE * (len(repulsions) - len(attractions))
 
-	def calc_external_magnetism(self, internal_keys: KeySet, external_keys: KeySet):
+	def calc_external_magnetism(
+		self, internal_keys: KeySet, all_keysets: Iterable[KeySet]
+	):
 		attractions = set()
 		repulsions = set()
 		for name in internal_keys:
 			attractions |= self._attractions[name]
 			repulsions |= self._repulsions[name]
-		attractions &= external_keys
-		repulsions &= external_keys
-		return WEAK_FORCE * (len(attractions) - len(repulsions))
+		attractions -= internal_keys
+		repulsions -= internal_keys
+		n_attractions = n_repulsions = 0
+		for keyset in all_keysets:
+			if not keyset.isdisjoint(attractions):
+				attractions -= keyset
+				n_attractions += 1
+			if not keyset.isdisjoint(repulsions):
+				repulsions -= keyset
+				n_repulsions += 1
+		return WEAK_FORCE * (n_attractions - n_repulsions)
 
-	def calc_force(self, a: KeySet, b: KeySet, all_keys: KeySet):
+	def calc_force(self, a: KeySet, b: KeySet, all_keysets: Iterable[KeySet]):
 		internal_keys = a | b
-		external_keys = all_keys - internal_keys
 		f = 0
 		f += sum(self._weights[u][v] for u, v in product(a, b))
-		f -= sum(self._weights[u][v] for u, v in product(internal_keys, external_keys))
+		for keys in all_keysets:
+			if keys == a or keys == b:
+				continue
+			f -= sum(self._weights[u][v] for u, v in product(internal_keys, keys))
 		f += self.calc_internal_magnetism(a, b)
-		f += self.calc_external_magnetism(internal_keys, external_keys)
+		f += self.calc_external_magnetism(internal_keys, all_keysets)
 		return f

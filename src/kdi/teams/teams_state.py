@@ -1,7 +1,7 @@
 from itertools import combinations, product
 from math import ceil, inf
 from random import shuffle
-from typing import Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 from ..util import get_config_value, KeySet, MagneticGraph
 
@@ -131,32 +131,31 @@ class TeamsState:
 		return remainder if remainder != 0 else n_groups
 
 	def _find_optimal_pair(self, open_teams: set[Team], max_team_size: int):
-		all_names = {name for p in open_teams for name in p}
 		min_force = inf
 		optimal_team_a = optimal_team_b = None
 		optimal_size = 0
 		pairs = list(combinations(open_teams, 2))
 		shuffle(pairs)
-		for p1, p2 in pairs:
-			new_len = len(p1) + len(p2)
+		for t1, t2 in pairs:
+			new_len = len(t1) + len(t2)
 			if self._team_too_large(new_len, max_team_size) or self._team_matches_block(
-				p1, p2
+				t1, t2
 			):
 				continue
-			force = self._forces.calc_force(p1, p2, all_names)
+			force = self._forces.calc_force(t1, t2, open_teams)
 			if force < min_force or (force == min_force and new_len > optimal_size):
 				min_force = force
-				optimal_team_a = p1
-				optimal_team_b = p2
+				optimal_team_a = t1
+				optimal_team_b = t2
 				optimal_size = new_len
 		if optimal_team_a is None or optimal_team_b is None:
 			return None
 		return optimal_team_a, optimal_team_b
 
-	def _combine_teams(self, team_a, team_b, open_teams):
-		open_teams.discard(team_a)
-		open_teams.discard(team_b)
-		return team_a | team_b
+	def _combine_teams(self, t1: Team, t2: Team, open_teams: set[Team]):
+		open_teams.discard(t1)
+		open_teams.discard(t2)
+		return t1 | t2
 
 	def generate(self, max_team_size: int):
 		closed_teams = {t for t in self._players if len(t) >= max_team_size}
