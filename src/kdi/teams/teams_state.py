@@ -1,9 +1,9 @@
-from itertools import combinations, product
+from itertools import chain, combinations, product
 from math import ceil, inf
 from random import shuffle
 from typing import Iterable, Optional, Sequence
 
-from ..util import get_config_value, KeySet, MagneticGraph
+from ..util import clamp, get_config_value, KeySet, MagneticGraph, NodeWeights
 
 Team = frozenset[str]
 
@@ -12,6 +12,7 @@ class TeamsState:
 	_blocks: set[Team]
 	_cores: set[Team]
 	_forces: MagneticGraph
+	_offsets: NodeWeights
 	_players: set[Team]
 	_round_number: int
 
@@ -23,6 +24,7 @@ class TeamsState:
 		self._blocks = set()
 		self._cores = set()
 		self._forces = MagneticGraph()
+		self._offsets = NodeWeights()
 		self._players = set()
 		self._round_number = 0
 
@@ -109,8 +111,12 @@ class TeamsState:
 		self._players -= players_to_remove
 		self._players |= players_to_add
 
-	def _record_historic_force(self, t: Team):
-		self._forces.increment_pairs(combinations(t, 2))
+	def _record_historic_forces(self, teams: Iterable[Team], max_team_size: int):
+		for t in teams:
+			self._forces.increment_pairs(combinations(t, 2))
+			for p in t:
+				self._offsets[p] += -2 if len(t) < max_team_size else 1
+				self._offsets[p] = clamp(self._offsets[p], -3, 1)
 
 	def _team_too_large(self, new_len: int, max_team_size: int):
 		return new_len > max_team_size
@@ -143,6 +149,7 @@ class TeamsState:
 			):
 				continue
 			force = self._forces.calc_force(t1, t2, open_teams)
+			force += sum(self._offsets[p] for p in chain(t1, t2))
 			if force < min_force or (force == min_force and new_len > optimal_size):
 				min_force = force
 				optimal_team_a = t1
@@ -162,20 +169,21 @@ class TeamsState:
 		open_teams = self._players - closed_teams
 		n_players = sum(len(p) for p in open_teams)
 		n_max_teams = self._calc_n_max_teams(n_players, max_team_size)
+		target_team_size = max_team_size
 		while open_teams:
-			pair = self._find_optimal_pair(open_teams, max_team_size)
+			pair = self._find_optimal_pair(open_teams, target_team_size)
 			if pair is None:
 				break
 			new_team = self._combine_teams(pair[0], pair[1], open_teams)
-			if len(new_team) == max_team_size:
+			if len(new_team) == target_team_size:
 				closed_teams.add(new_team)
 				n_max_teams -= 1
 				if n_max_teams == 0:
-					max_team_size -= 1
+					target_team_size -= 1
 			else:
 				open_teams.add(new_team)
 		closed_teams |= open_teams
-		for t in closed_teams:
-			self._record_historic_force(t)
+		closed_teams = list(closed_teams)
+		self._record_historic_forces(closed_teams, max_team_size)
 		self._round_number += 1
-		return list(closed_teams)
+		return closed_teams

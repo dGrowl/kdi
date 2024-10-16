@@ -55,6 +55,21 @@ def players_6():
 	return [{name} for name in "abcdef"]
 
 
+@pytest.fixture
+def t_xya():
+	return Team("xya")
+
+
+@pytest.fixture
+def t_zb():
+	return Team("zb")
+
+
+@pytest.fixture
+def sample_state(cores_2_1: list[KeySet], players_3: list[KeySet]):
+	return TeamsState(cores_2_1, players_3)
+
+
 class TestAddCore:
 	def test_returns_true_on_success(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
@@ -99,17 +114,14 @@ class TestAddCore:
 
 
 class TestRemoveCore:
-	def test_returns_true_on_success(self, cores_2_1: list[KeySet]):
-		state = TeamsState(cores=cores_2_1)
-		assert state.remove_core({"z"})
+	def test_returns_true_on_success(self, sample_state: TeamsState):
+		assert sample_state.remove_core({"z"})
 
-	def test_returns_false_on_nonexistent(self, cores_2_1: list[KeySet]):
-		state = TeamsState(cores=cores_2_1)
-		assert not state.remove_core({"k"})
+	def test_returns_false_on_nonexistent(self, sample_state: TeamsState):
+		assert not sample_state.remove_core({"k"})
 
-	def test_fails_on_partial_match(self, cores_2_1: list[KeySet]):
-		state = TeamsState(cores=cores_2_1)
-		assert not state.remove_core({"x"})
+	def test_fails_on_partial_match(self, sample_state: TeamsState):
+		assert not sample_state.remove_core({"x"})
 
 
 class TestAddPlayer:
@@ -135,14 +147,43 @@ class TestRecordHistoricForce:
 		team = Team("abc")
 		a, b, c = team
 		state = TeamsState()
-		state._record_historic_force(team)
+		state._record_historic_forces([team], 3)
 
 		assert state._forces[a][b] == state._forces[a][c] == state._forces[b][c] == 1
 
+	def test_adds_offset_for_max_size_team(
+		self, sample_state: TeamsState, t_xya: Team, t_zb: Team
+	):
+		sample_state._record_historic_forces([t_xya, t_zb], 3)
 
-@pytest.fixture
-def sample_state(cores_2_1: list[KeySet], players_3: list[KeySet]):
-	return TeamsState(cores_2_1, players_3)
+		for p in t_xya:
+			assert sample_state._offsets[p] == 1
+
+	def test_subtracts_offset_for_undersize_team(
+		self, sample_state: TeamsState, t_xya: Team, t_zb: Team
+	):
+		sample_state._record_historic_forces([t_xya, t_zb], 3)
+
+		for p in t_zb:
+			assert sample_state._offsets[p] == -2
+
+	def test_restricts_max_offset(
+		self, sample_state: TeamsState, t_xya: Team, t_zb: Team
+	):
+		expected_offset = [1, 1]
+		for i in range(2):
+			sample_state._record_historic_forces([t_xya, t_zb], 3)
+			for p in t_xya:
+				assert sample_state._offsets[p] == expected_offset[i]
+
+	def test_restricts_min_offset(
+		self, sample_state: TeamsState, t_xya: Team, t_zb: Team
+	):
+		expected_offset = [-2, -3, -3]
+		for i in range(3):
+			sample_state._record_historic_forces([t_xya, t_zb], 3)
+			for p in t_zb:
+				assert sample_state._offsets[p] == expected_offset[i]
 
 
 def sort_keysets(keysets: Sequence[KeySet]):
@@ -164,10 +205,9 @@ class TestFindOptimalPair:
 		assert pair is not None
 		assert sort_keysets(pair) == [{"a"}, {"b"}]
 
-	def test_uses_external_force(self, cores_2_1, players_3):
-		state = TeamsState(cores_2_1, players_3)
-		state._forces.repel("z", "b")
-		pair = state._find_optimal_pair(state._players, 3)
+	def test_uses_external_force(self, sample_state: TeamsState):
+		sample_state._forces.repel("z", "b")
+		pair = sample_state._find_optimal_pair(sample_state._players, 3)
 
 		assert pair is not None
 		team_a, team_b = sort_keysets(pair)
@@ -241,12 +281,13 @@ class TestGenerate:
 	def test_records_historic_forces(
 		self, mocker: MockerFixture, players_3: list[KeySet]
 	):
-		recorder = mocker.spy(TeamsState, "_record_historic_force")
+		recorder = mocker.spy(TeamsState, "_record_historic_forces")
+		max_team_size = 3
 
 		state = TeamsState(players=players_3)
-		teams = state.generate(3)
+		teams = state.generate(max_team_size)
 
-		recorder.assert_called_once_with(state, teams[0])
+		recorder.assert_called_once_with(state, teams, max_team_size)
 
 	def test_follows_historic_forces(self, players_6: list[KeySet]):
 		state = TeamsState(players=players_6)
@@ -264,10 +305,7 @@ class TestGenerate:
 		assert teams[0 if "a" in teams[0] else 1] == set("aef")
 
 	def test_distributes_members_no_weights(
-		self,
-		mocker: MockerFixture,
-		cores_2_1: list[KeySet],
-		players_3: list[KeySet],
+		self, mocker: MockerFixture, sample_state: TeamsState
 	):
 		mocker.patch(
 			"kdi.teams.teams_state.TeamsState._find_optimal_pair",
@@ -280,8 +318,7 @@ class TestGenerate:
 			),
 		)
 
-		state = TeamsState(cores_2_1, players_3)
-		teams = state.generate(3)
+		teams = sample_state.generate(3)
 		assert teams == [set("acz"), set("bxy")] or teams == [set("bxy"), set("acz")]
 
 	def test_follows_repulsion(self, sample_state: TeamsState):
