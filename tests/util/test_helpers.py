@@ -2,7 +2,29 @@ from typing import Iterable
 
 import pytest
 
-from kdi.util import flatten_2d, shuffled
+from kdi.util import clamp, flatten_2d, shuffled
+
+
+class TestClamp:
+	@pytest.mark.parametrize(
+		("x", "lo", "hi", "y"),
+		[
+			(3, 1, 5, 3),
+			(1, 1, 5, 1),
+			(5, 1, 5, 5),
+			(0, 1, 5, 1),
+			(-7, 1, 5, 1),
+			(8, 1, 5, 5),
+			(-7, -5, 5, -5),
+			(3, -5, 5, 3),
+			(13, -5, 5, 5),
+			(-7, -5, -1, -5),
+			(3, -5, -1, -1),
+			(-3, -5, -1, -3),
+		],
+	)
+	def test_returns_expected_value(self, x: int, lo: int, hi: int, y: int):
+		assert clamp(x, lo, hi) == y
 
 
 class TestShuffled:

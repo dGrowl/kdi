@@ -21,3 +21,7 @@ def shuffled(x: Iterable[T]):
 
 def flatten_2d(x: Iterable[Iterable[T]]):
 	return [item for iterable in x for item in iterable]
+
+
+def clamp(x: int, lo: int, hi: int):
+	return max(lo, min(x, hi))
