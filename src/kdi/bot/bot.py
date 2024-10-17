@@ -1,3 +1,4 @@
+from lightbulb.ext import tasks
 import hikari
 import lightbulb
 
@@ -20,3 +21,4 @@ class KDI(lightbulb.BotApp):
 
 
 kdi = KDI()
+tasks.load(kdi)

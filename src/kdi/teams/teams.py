@@ -11,10 +11,13 @@ from .players_message import (
 	PLAYER_AVAILABLE_ID,
 	PLAYER_UNAVAILABLE_ID,
 )
+from .round_reminder import RoundReminder
 from .teams_message import TeamsMessage
 from .teams_state import KeySet, TeamsState
 
 UNTRUSTED_USER_RESPONSE = ":no_entry: Only trusted users can make teams. Sorry!"
+
+STOP_RESPONSE = "Sucessfully ended the teams session."
 
 SELF_DESTRUCT_FOOTER = "This message will self-destruct momentarily."
 
@@ -33,6 +36,7 @@ class TeamsPlugin(lightbulb.Plugin):
 	_color: str
 	_cores_message: CoresMessage
 	_players_message: PlayersMessage
+	_round_reminder: RoundReminder
 	_state: TeamsState
 	_trusted_user_ids: set[int]
 
@@ -40,6 +44,7 @@ class TeamsPlugin(lightbulb.Plugin):
 		super().__init__("teams")
 		self._color = get_config_value("bot", "color")
 		self._cores_message = CoresMessage()
+		self._round_reminder = RoundReminder()
 		self._players_message = PlayersMessage()
 		self._state = TeamsState()
 		self._trusted_user_ids = get_config_value("user", "trusted_ids")
@@ -64,8 +69,14 @@ class TeamsPlugin(lightbulb.Plugin):
 			self.load_test_data()
 		if ctx.options["auto-core"]:
 			self._state.add_core({ctx.user.username})
+		if ctx.options["reminder-role"]:
+			self._round_reminder.start(ctx)
 		await self._cores_message.create(ctx, self.cores)
 		await self._players_message.create(ctx, self.players)
+
+	async def stop(self, ctx: lightbulb.SlashContext):
+		await ctx.respond(STOP_RESPONSE, flags=hikari.MessageFlag.EPHEMERAL)
+		self._round_reminder.stop()
 
 	def load_test_data(self):
 		for c in map(set, ["xy", "z"]):
@@ -215,6 +226,12 @@ async def teams_group(_):
 	type=bool,
 	default=True,
 )
+@lightbulb.option(
+	"reminder-role",
+	description="A role to ping with end-of-round reminders. (default=None)",
+	type=hikari.Role,
+	default=None,
+)
 @lightbulb.command(
 	"start",
 	description="Starts a new session of the teams system.",
@@ -223,6 +240,17 @@ async def teams_group(_):
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def start_command(ctx: lightbulb.SlashContext):
 	await teams_plugin.start(ctx)
+
+
+@teams_group.child
+@lightbulb.command(
+	"stop",
+	description="Stops the current teams session.",
+	inherit_checks=True,
+)
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def stop_command(ctx: lightbulb.SlashContext):
+	await teams_plugin.stop(ctx)
 
 
 MAX_PLAYERS = 4

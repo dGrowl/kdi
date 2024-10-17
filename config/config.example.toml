@@ -42,3 +42,4 @@ blocks = [
 	["north", "south"],
 	["light", "dark"],
 ]
+round_reminder_cron = "50 * * * *"
