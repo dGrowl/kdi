@@ -53,6 +53,7 @@ class TestPluginStart:
 	):
 		teams = TeamsPlugin()
 		await teams.start(start_context)
+		await teams.stop(start_context)
 
 		state_resetter.assert_called_once()
 
@@ -68,6 +69,7 @@ class TestPluginStart:
 
 		teams = TeamsPlugin()
 		await teams.start(start_context)
+		await teams.stop(start_context)
 
 		pm_creator.assert_called_once_with(
 			start_context, teams._state._players - teams._state._cores
