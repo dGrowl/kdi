@@ -125,12 +125,33 @@ class TestRemoveCore:
 
 
 class TestAddPlayer:
+	def test_adds_new_player(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		state.add_player(Team("d"))
+
+		assert state._players == {Team(p) for p in ["a", "b", "c", "d"]}
+
+	def test_merges_existing_players(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		state.add_player(Team("bc"))
+
+		assert state._players == {Team(p) for p in ["a", "bc"]}
+
+	def test_merges_new_and_old_players(self, players_3: list[KeySet]):
+		state = TeamsState(players=players_3)
+		state.add_player(Team("cd"))
+
+		assert state._players == {Team(p) for p in ["a", "b", "cd"]}
+
 	def test_returns_true_on_success(self):
 		assert TeamsState().add_player({"a"})
 
 	def test_returns_false_on_duplicate(self, players_3: list[KeySet]):
 		state = TeamsState(players=players_3)
 		assert not state.add_player(players_3[0])
+
+	def test_returns_false_on_overlap_with_core(self, sample_state: TeamsState):
+		assert not sample_state.add_player({"x"})
 
 
 class TestRemovePlayer:

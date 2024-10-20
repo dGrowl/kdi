@@ -83,10 +83,18 @@ class TeamsState:
 		return False
 
 	def add_player(self, names: KeySet):
+		if names in self._players:
+			return False
+		if any(not c.isdisjoint(names) for c in self._cores):
+			return False
+		to_add = {Team(names)}
+		to_remove = {Team()}
 		for p in self._players:
-			if names & p:
-				return False
-		self._players.add(Team(names))
+			if not p.isdisjoint(names):
+				to_add.add(p - names)
+				to_remove.add(p)
+		self._players |= to_add
+		self._players -= to_remove
 		return True
 
 	def remove_player(self, names: KeySet):
