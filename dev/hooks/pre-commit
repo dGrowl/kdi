@@ -1,17 +1,22 @@
 #!/bin/sh
 
-staged_python_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
-if [ -n "$staged_python_files" ]; then
-    echo "Formatting staged files..."
-    ruff format $staged_python_files
-    git add $staged_python_files
-fi
+py_dirs="src tests dev"
 
-echo "Linting staged files..."
-ruff check $staged_python_files
+echo "Formatting..."
+fmt_output=$(ruff format --check --diff $py_dirs)
 
 if [ $? -ne 0 ]; then
-    echo "** ERROR: Linting failed. Commit aborted. **"
+    echo "** ERROR: Formatting issues were found. Commit blocked. **"
+    echo "$fmt_output"
+    exit 1
+fi
+
+echo "Linting..."
+lint_output=$(ruff check $py_dirs)
+
+if [ $? -ne 0 ]; then
+    echo "** ERROR: Linting failed. Commit blocked. **"
+    echo "$lint_output"
     exit 1
 fi
 
@@ -19,7 +24,7 @@ echo "Running tests..."
 pytest
 
 if [ $? -ne 0 ]; then
-    echo "** ERROR: Tests failed. Commit aborted. **"
+    echo "** ERROR: Tests failed. Commit blocked. **"
     exit 1
 fi
 
