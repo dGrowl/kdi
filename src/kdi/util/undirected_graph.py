@@ -2,6 +2,8 @@ from collections import Counter, defaultdict
 from itertools import product
 from typing import DefaultDict, Iterable, Union
 
+from .helpers import intersects
+
 Key = str
 KeyPair = tuple[Key, Key]
 KeyPairs = Iterable[KeyPair]
@@ -119,10 +121,10 @@ class MagneticGraph(UndirectedGraph):
 		repulsions -= internal_keys
 		n_attractions = n_repulsions = 0
 		for keyset in all_keysets:
-			if not keyset.isdisjoint(attractions):
+			if intersects(keyset, attractions):
 				attractions -= keyset
 				n_attractions += 1
-			if not keyset.isdisjoint(repulsions):
+			if intersects(keyset, repulsions):
 				repulsions -= keyset
 				n_repulsions += 1
 		return WEAK_FORCE * (n_attractions - n_repulsions)

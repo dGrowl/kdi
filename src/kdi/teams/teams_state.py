@@ -3,7 +3,14 @@ from math import ceil, inf
 from random import shuffle
 from typing import Iterable, Optional, Sequence
 
-from ..util import clamp, get_config_value, KeySet, MagneticGraph, NodeWeights
+from ..util import (
+	clamp,
+	get_config_value,
+	intersects,
+	KeySet,
+	MagneticGraph,
+	NodeWeights,
+)
 
 Team = frozenset[str]
 
@@ -64,11 +71,13 @@ class TeamsState:
 	def round_number(self):
 		return self._round_number
 
+	def _overlaps_with_core(self, names: KeySet):
+		return any(intersects(c, names) for c in self._cores)
+
 	def add_core(self, names: KeySet):
 		new_core = Team(names)
-		for c in self._cores:
-			if new_core & c:
-				return False
+		if self._overlaps_with_core(names):
+			return False
 		self._separate_core_from_players(new_core)
 		self._players.add(new_core)
 		self._cores.add(new_core)
@@ -85,12 +94,12 @@ class TeamsState:
 	def add_player(self, names: KeySet):
 		if names in self._players:
 			return False
-		if any(not c.isdisjoint(names) for c in self._cores):
+		if self._overlaps_with_core(names):
 			return False
 		to_add = {Team(names)}
 		to_remove = {Team()}
 		for p in self._players:
-			if not p.isdisjoint(names):
+			if intersects(p, names):
 				to_add.add(p - names)
 				to_remove.add(p)
 		self._players |= to_add

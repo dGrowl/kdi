@@ -25,3 +25,7 @@ def flatten_2d(x: Iterable[Iterable[T]]):
 
 def clamp(x: int, lo: int, hi: int):
 	return max(lo, min(x, hi))
+
+
+def intersects(a: set | frozenset, b: set | frozenset):
+	return not a.isdisjoint(b)
