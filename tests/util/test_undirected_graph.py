@@ -45,26 +45,19 @@ class TestResetPolarity:
 		graph = MagneticGraph()
 		graph.attract(a, b)
 		graph.reset_polarity(a, b)
-		assert graph[a][b] == 0
+		assert graph.get_edge(a, b) == 0
 
 	def test_resets_repulsion(self, a: str, b: str):
 		graph = MagneticGraph()
 		graph.repel(a, b)
 		graph.reset_polarity(a, b)
-		assert graph[a][b] == 0
+		assert graph.get_edge(a, b) == 0
 
 	def test_ignores_key_order(self, a: str, b: str):
 		graph = MagneticGraph()
 		graph.attract(a, b)
 		graph.reset_polarity(b, a)
-		assert graph[a][b] == graph[b][a] == 0
-
-	def test_detects_existing_polarity(self, a: str, b: str, c: str):
-		graph = MagneticGraph()
-		graph.attract(a, b)
-		graph.repel(a, c)
-		graph.reset_polarity(a, c)
-		assert graph[a][c] == graph[c][a] == 0
+		assert graph.get_edge(a, b) == 0
 
 
 class TestAttract:

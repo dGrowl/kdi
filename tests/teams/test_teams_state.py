@@ -1,3 +1,4 @@
+from itertools import combinations
 from typing import Sequence
 
 from pytest_mock import MockerFixture
@@ -105,7 +106,8 @@ class TestAddCore:
 		state = TeamsState()
 		state.add_core(cores_2_1[0])
 
-		assert not state._forces["x"] and not state._forces["y"]
+		assert not state._forces._weights["x"]
+		assert not state._forces._weights["y"]
 
 		state.add_core(cores_2_1[1])
 
@@ -170,7 +172,8 @@ class TestRecordHistoricForce:
 		state = TeamsState()
 		state._record_historic_forces([team], 3)
 
-		assert state._forces[a][b] == state._forces[a][c] == state._forces[b][c] == 1
+		for x, y in combinations(team, 2):
+			assert state._forces.get_edge(x, y) == 1
 
 	def test_adds_offset_for_max_size_team(
 		self, sample_state: TeamsState, t_xya: Team, t_zb: Team

@@ -29,20 +29,28 @@ class UndirectedGraph:
 				seen.add(pair)
 		return "{\n" + "\n".join(sorted(lines)) + "\n}"
 
-	def __getitem__(self, key: Key):
-		return self._weights[key]
+	def get_edge(self, u: Key, v: Key):
+		if u > v:
+			u, v = v, u
+		return self._weights[u][v]
+
+	def set_edge(self, u: Key, v: Key, w: int):
+		if u > v:
+			u, v = v, u
+		self._weights[u][v] = w
 
 	def load(self, weights: list[tuple[Key, Key, int]]):
 		self.clear()
 		for u, v, w in weights:
-			self._weights[u][v] = self._weights[v][u] = w
+			self.set_edge(u, v, w)
 
 	def clear(self):
 		self._weights.clear()
 
 	def add(self, u: Key, v: Key, amount: int):
+		if u > v:
+			u, v = v, u
 		self._weights[u][v] += amount
-		self._weights[v][u] += amount
 
 	def increment(self, u: Key, v: Key):
 		self.add(u, v, 1)
@@ -64,9 +72,6 @@ class MagneticGraph(UndirectedGraph):
 		super().__init__()
 		self._attractions = defaultdict(set)
 		self._repulsions = defaultdict(set)
-
-	def __getitem__(self, u: Key):
-		return self._weights[u]
 
 	def clear(self):
 		super().clear()
@@ -132,11 +137,11 @@ class MagneticGraph(UndirectedGraph):
 	def calc_force(self, a: KeySet, b: KeySet, all_keysets: Iterable[KeySet]):
 		internal_keys = a | b
 		f = 0
-		f += sum(self._weights[u][v] for u, v in product(a, b))
+		f += sum(self.get_edge(u, v) for u, v in product(a, b))
 		for keys in all_keysets:
 			if keys == a or keys == b:
 				continue
-			f -= sum(self._weights[u][v] for u, v in product(internal_keys, keys))
+			f -= sum(self.get_edge(u, v) for u, v in product(internal_keys, keys))
 		f += self.calc_internal_magnetism(a, b)
 		f += self.calc_external_magnetism(internal_keys, all_keysets)
 		return f
