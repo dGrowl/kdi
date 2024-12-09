@@ -105,8 +105,8 @@ class MagneticGraph(UndirectedGraph):
 			self.repel(u, v)
 
 	def calc_internal_magnetism(self, a: KeySet, b: KeySet):
-		attractions = set()
-		repulsions = set()
+		attractions: KeySet = set()
+		repulsions: KeySet = set()
 		for u in a:
 			attractions |= self._attractions[u]
 			repulsions |= self._repulsions[u]
@@ -117,8 +117,8 @@ class MagneticGraph(UndirectedGraph):
 	def calc_external_magnetism(
 		self, internal_keys: KeySet, all_keysets: Iterable[KeySet]
 	):
-		attractions = set()
-		repulsions = set()
+		attractions: KeySet = set()
+		repulsions: KeySet = set()
 		for name in internal_keys:
 			attractions |= self._attractions[name]
 			repulsions |= self._repulsions[name]

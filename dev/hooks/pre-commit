@@ -1,6 +1,6 @@
 #!/bin/sh
 
-py_dirs="src tests dev"
+py_dirs="src tests dev typings"
 
 echo "Formatting..."
 fmt_output=$(ruff format --check --diff $py_dirs)

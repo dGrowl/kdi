@@ -1,4 +1,4 @@
-PY_DIRS = src tests dev
+PY_DIRS = src tests dev typings
 
 format:
 	ruff format $(PY_DIRS)

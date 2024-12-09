@@ -168,7 +168,6 @@ class TestRemovePlayer:
 class TestRecordHistoricForce:
 	def test_increments_all_pairs(self):
 		team = Team("abc")
-		a, b, c = team
 		state = TeamsState()
 		state._record_historic_forces([team], 3)
 

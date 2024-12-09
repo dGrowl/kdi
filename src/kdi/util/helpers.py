@@ -6,7 +6,7 @@ from typing import Iterable, TypeVar
 
 T = TypeVar("T")
 
-type Setlike = set | frozenset
+Setlike = set[T] | frozenset[T]
 
 
 TEST_DATA_FLAG = "--test-data"
@@ -42,5 +42,5 @@ def clamp(x: int, lo: int, hi: int):
 	return max(lo, min(x, hi))
 
 
-def intersects(a: Setlike, b: Setlike):
+def intersects(a: Setlike[T], b: Setlike[T]):
 	return not a.isdisjoint(b)
