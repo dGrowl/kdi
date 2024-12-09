@@ -1,2 +1,4 @@
 hikari-2.0.0.dev126
 hikari-lightbulb==2.3.5
+hikari-ongaku==1.0.3
+pyttsx3==2.98

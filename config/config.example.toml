@@ -5,6 +5,10 @@ color = "#48F8AC"
 [user]
 trusted_ids = [123, 456, 789]
 
+[relay]
+voice = "Zira"
+audio_password = "secret"
+
 [teams]
 core_name_components = [
 	["Core of"],

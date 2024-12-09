@@ -1,3 +1,3 @@
-from .bot import kdi, KDI
+from .bot import audio_client, kdi, KDI
 
-__all__ = ["kdi", "KDI"]
+__all__ = ["audio_client", "kdi", "KDI"]
