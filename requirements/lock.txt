@@ -11,6 +11,7 @@ frozenlist==1.4.1
 idna==3.7
 iniconfig==2.0.0
 multidict==6.0.5
+nodeenv==1.9.1
 packaging==24.1
 pluggy==1.5.0
 propcache==0.2.1
@@ -20,4 +21,5 @@ pytz==2024.2
 pywin32==308
 six==1.16.0
 types-croniter==2.0.5.20240722
+typing_extensions==4.12.2
 yarl==1.18.3

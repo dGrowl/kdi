@@ -6,6 +6,9 @@ format:
 lint:
 	ruff check $(PY_DIRS)
 
+typecheck:
+	pyright $(PY_DIRS)
+
 test:
 	pytest -vx
 
